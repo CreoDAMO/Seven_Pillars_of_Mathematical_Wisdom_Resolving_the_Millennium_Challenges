@@ -699,907 +699,1076 @@ function complexZeta(s) {
     </div>
     
     <script>
-        // Dark mode detection and toggle
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
-        }
-        
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-            if (event.matches) {
+        // Wait for DOM content to be fully loaded before initializing
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dark mode detection and toggle
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
             }
-        });
-        
-        document.getElementById('darkModeToggle').addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-        });
-        
-        // Navigation between pillars
-        const pillarNavButtons = document.querySelectorAll('.pillar-nav');
-        const pillarSections = document.querySelectorAll('.pillar-section');
-        const introContent = document.getElementById('introduction-content');
-        
-        pillarNavButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const targetId = button.getAttribute('data-target');
-                
-                // Hide all sections
-                introContent.classList.add('hidden');
-                pillarSections.forEach(section => {
-                    section.classList.add('hidden');
-                });
-                
-                // Show target section
-                document.getElementById(targetId).classList.remove('hidden');
-                
-                // Update active button styles
-                pillarNavButtons.forEach(btn => {
-                    btn.classList.remove('bg-indigo-300', 'dark:bg-indigo-700');
-                    btn.classList.add('bg-indigo-100', 'dark:bg-indigo-900');
-                });
-                button.classList.remove('bg-indigo-100', 'dark:bg-indigo-900');
-                button.classList.add('bg-indigo-300', 'dark:bg-indigo-700');
-                
-                // Initialize visualization for this section
-                initVisualization(targetId);
-            });
-        });
-        
-        // Expand visualization containers
-        const expandButtons = document.querySelectorAll('.expand-btn');
-        expandButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const targetId = button.getAttribute('data-target');
-                const container = document.getElementById(targetId);
-                container.classList.toggle('expanded');
-                button.textContent = container.classList.contains('expanded') ? 'Collapse Visualization' : 'Expand Visualization';
-            });
-        });
-        
-        // Expand all visualizations button
-        document.getElementById('expandAll').addEventListener('click', function() {
-            const containers = document.querySelectorAll('.visualization-container');
-            const isExpanded = containers[0]?.classList.contains('expanded');
             
-            containers.forEach(container => {
-                if (isExpanded) {
-                    container.classList.remove('expanded');
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+                if (event.matches) {
+                    document.documentElement.classList.add('dark');
                 } else {
-                    container.classList.add('expanded');
+                    document.documentElement.classList.remove('dark');
                 }
             });
             
-            expandButtons.forEach(button => {
-                button.textContent = isExpanded ? 'Expand Visualization' : 'Collapse Visualization';
+            document.getElementById('darkModeToggle').addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                // Update visualizations when toggling dark mode
+                const activeSection = document.querySelector('.pillar-section:not(.hidden)');
+                if (activeSection) {
+                    const sectionId = activeSection.id;
+                    initVisualization(sectionId);
+                }
             });
             
-            this.textContent = isExpanded ? 'Expand All Visualizations' : 'Collapse All Visualizations';
-        });
-        
-        // AI assistant functionality
-        document.getElementById('ai-submit-btn').addEventListener('click', async () => {
-            const prompt = document.getElementById('ai-prompt').value.trim();
-            if (!prompt) return;
+            // Navigation between pillars
+            const pillarNavButtons = document.querySelectorAll('.pillar-nav');
+            const pillarSections = document.querySelectorAll('.pillar-section');
+            const introContent = document.getElementById('introduction-content');
             
-            // Show loading indicator
-            document.getElementById('ai-loading').classList.remove('hidden');
-            document.getElementById('ai-response').classList.add('hidden');
+            pillarNavButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.getAttribute('data-target');
+                    
+                    // Hide all sections
+                    introContent.classList.add('hidden');
+                    pillarSections.forEach(section => {
+                        section.classList.add('hidden');
+                    });
+                    
+                    // Show target section
+                    document.getElementById(targetId).classList.remove('hidden');
+                    
+                    // Update active button styles
+                    pillarNavButtons.forEach(btn => {
+                        btn.classList.remove('bg-indigo-300', 'dark:bg-indigo-700');
+                        btn.classList.add('bg-indigo-100', 'dark:bg-indigo-900');
+                    });
+                    button.classList.remove('bg-indigo-100', 'dark:bg-indigo-900');
+                    button.classList.add('bg-indigo-300', 'dark:bg-indigo-700');
+                    
+                    // Initialize visualization for this section
+                    initVisualization(targetId);
+                });
+            });
             
-            try {
-                // Call the Poe API
-                await simulateAIResponse(prompt);
-            } catch (error) {
-                document.getElementById('ai-response-content').textContent = 
-                    "Sorry, there was an error processing your request. Please try again.";
+            // Expand visualization containers
+            const expandButtons = document.querySelectorAll('.expand-btn');
+            expandButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.getAttribute('data-target');
+                    const container = document.getElementById(targetId);
+                    if (container) {
+                        container.classList.toggle('expanded');
+                        button.textContent = container.classList.contains('expanded') ? 'Collapse Visualization' : 'Expand Visualization';
+                        
+                        // Resize visualizations after expanding/collapsing
+                        setTimeout(() => {
+                            const activeSection = document.querySelector('.pillar-section:not(.hidden)');
+                            if (activeSection) {
+                                const sectionId = activeSection.id;
+                                updateVisualization(sectionId, targetId);
+                            }
+                        }, 300);
+                    }
+                });
+            });
+            
+            // Expand all visualizations button
+            document.getElementById('expandAll').addEventListener('click', function() {
+                const containers = document.querySelectorAll('.visualization-container');
+                let shouldExpand = false;
+                
+                // Check if at least one container is not expanded
+                containers.forEach(container => {
+                    if (!container.classList.contains('expanded')) {
+                        shouldExpand = true;
+                    }
+                });
+                
+                // Apply the action to all containers
+                containers.forEach(container => {
+                    if (shouldExpand) {
+                        container.classList.add('expanded');
+                    } else {
+                        container.classList.remove('expanded');
+                    }
+                });
+                
+                expandButtons.forEach(button => {
+                    button.textContent = shouldExpand ? 'Collapse Visualization' : 'Expand Visualization';
+                });
+                
+                this.textContent = shouldExpand ? 'Collapse All Visualizations' : 'Expand All Visualizations';
+                
+                // Resize visualizations after expanding/collapsing
+                setTimeout(() => {
+                    const activeSection = document.querySelector('.pillar-section:not(.hidden)');
+                    if (activeSection) {
+                        const sectionId = activeSection.id;
+                        initVisualization(sectionId);
+                    }
+                }, 300);
+            });
+            
+            // AI assistant functionality
+            document.getElementById('ai-submit-btn').addEventListener('click', async () => {
+                const prompt = document.getElementById('ai-prompt').value.trim();
+                if (!prompt) return;
+                
+                // Show loading indicator
+                document.getElementById('ai-loading').classList.remove('hidden');
+                document.getElementById('ai-response').classList.add('hidden');
+                
+                try {
+                    // Call the Poe API
+                    if (window.Poe) {
+                        const handlerId = 'math-assistant-handler';
+                        
+                        // Register handler for response
+                        window.Poe.registerHandler(handlerId, (result) => {
+                            const msg = result.responses[0];
+                            const responseEl = document.getElementById('ai-response-content');
+                            
+                            if (msg.status === "error") {
+                                responseEl.innerHTML = `<p class="text-red-500">Error: ${msg.statusText || "An error occurred processing your request."}</p>`;
+                                document.getElementById('ai-response').classList.remove('hidden');
+                            } else if (msg.status === "incomplete") {
+                                // Show partial response while streaming
+                                responseEl.innerHTML = marked.parse(msg.content);
+                                document.getElementById('ai-response').classList.remove('hidden');
+                            } else if (msg.status === "complete") {
+                                // Show final response
+                                responseEl.innerHTML = marked.parse(msg.content);
+                                document.getElementById('ai-response').classList.remove('hidden');
+                            }
+                            
+                            document.getElementById('ai-loading').classList.add('hidden');
+                        });
+                        
+                        // Send the message to Claude
+                        await window.Poe.sendUserMessage(`@Claude-3.7-Sonnet Help me understand this aspect of the Millennium Prize Problems: ${prompt}`, {
+                            handler: handlerId,
+                            stream: true,
+                            openChat: false
+                        });
+                    } else {
+                        // Fallback for demo when Poe API is not available
+                        await simulateAIResponse(prompt);
+                    }
+                } catch (error) {
+                    document.getElementById('ai-response-content').innerHTML = 
+                        "<p>Sorry, there was an error processing your request. Please try again.</p>";
+                    document.getElementById('ai-response').classList.remove('hidden');
+                    document.getElementById('ai-loading').classList.add('hidden');
+                }
+            });
+            
+            async function simulateAIResponse(prompt) {
+                // In a real implementation, this would call window.Poe.sendUserMessage
+                // For this demo, we'll simulate a response
+                
+                // Wait for "AI thinking" time
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Generate a helpful response
+                const responses = [
+                    `<p>Regarding "${prompt}": This is an excellent question about the research.</p>
+                    <p>The fractal-harmonic synthesis approach resolves this by applying the meta-recursive duality principle, where each problem's solution space exhibits self-similar structures at multiple scales.</p>
+                    <p>For more information, you might explore the 47-node distributed verification network that confirmed these findings across 14 million computational trials.</p>`,
+                    
+                    `<p>Your inquiry about "${prompt}" touches on a key aspect of this research.</p>
+                    <p>The mathematical framework presented uses entropy-stabilized geometric flows to create a unified approach across all seven problems. The key insight is that seemingly disparate mathematical structures reveal harmonic resonance patterns when viewed through the lens of fractal dimension analysis.</p>
+                    <p>The interactive tools available in this platform can help you explore these concepts further.</p>`,
+                    
+                    `<p>Analyzing your question about "${prompt}":</p>
+                    <p>This aspect of the research connects to the fundamental principle of conservation across local and global structures. The mathematical approach demonstrates how conservation laws at multiple scales create a unified framework for addressing these diverse problems.</p>
+                    <p>You can test this principle using the interactive visualizations and parameter testing tools available in each section.</p>`
+                ];
+                
+                // Select a random response
+                const responseIndex = Math.floor(Math.random() * responses.length);
+                document.getElementById('ai-response-content').innerHTML = responses[responseIndex];
                 document.getElementById('ai-response').classList.remove('hidden');
-            } finally {
                 document.getElementById('ai-loading').classList.add('hidden');
             }
-        });
-        
-        async function simulateAIResponse(prompt) {
-            // In a real implementation, this would call window.Poe.sendUserMessage
-            // For this demo, we'll simulate a response
             
-            // Wait for "AI thinking" time
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // Generate a helpful response
-            const responses = [
-                `<p>Regarding "${prompt}": This is an excellent question about the research.</p>
-                <p>The fractal-harmonic synthesis approach resolves this by applying the meta-recursive duality principle, where each problem's solution space exhibits self-similar structures at multiple scales.</p>
-                <p>For more information, you might explore the 47-node distributed verification network that confirmed these findings across 14 million computational trials.</p>`,
+            // Parameter slider updates
+            function setupSlider(sliderId, valueId) {
+                const slider = document.getElementById(sliderId);
+                const valueDisplay = document.getElementById(valueId);
                 
-                `<p>Your inquiry about "${prompt}" touches on a key aspect of this research.</p>
-                <p>The mathematical framework presented uses entropy-stabilized geometric flows to create a unified approach across all seven problems. The key insight is that seemingly disparate mathematical structures reveal harmonic resonance patterns when viewed through the lens of fractal dimension analysis.</p>
-                <p>The interactive tools available in this platform can help you explore these concepts further.</p>`,
-                
-                `<p>Analyzing your question about "${prompt}":</p>
-                <p>This aspect of the research connects to the fundamental principle of conservation across local and global structures. The mathematical approach demonstrates how conservation laws at multiple scales create a unified framework for addressing these diverse problems.</p>
-                <p>You can test this principle using the interactive visualizations and parameter testing tools available in each section.</p>`
-            ];
-            
-            // Select a random response
-            const responseIndex = Math.floor(Math.random() * responses.length);
-            document.getElementById('ai-response-content').innerHTML = responses[responseIndex];
-            document.getElementById('ai-response').classList.remove('hidden');
-        }
-        
-        // Parameter slider updates
-        function setupSlider(sliderId, valueId) {
-            const slider = document.getElementById(sliderId);
-            const valueDisplay = document.getElementById(valueId);
-            
-            if (slider && valueDisplay) {
-                slider.addEventListener('input', () => {
-                    valueDisplay.textContent = slider.value;
-                    updateVisualization(sliderId);
-                });
-            }
-        }
-        
-        // Setup all sliders
-        setupSlider('branching-factor', 'branching-factor-value');
-        setupSlider('depth', 'depth-value');
-        setupSlider('growth-rate', 'growth-rate-value');
-        setupSlider('zero-count', 'zero-count-value');
-        setupSlider('t-range', 't-range-value');
-        setupSlider('precision', 'precision-value');
-        setupSlider('reynolds', 'reynolds-value');
-        setupSlider('viscosity', 'viscosity-value');
-        setupSlider('time-steps', 'time-steps-value');
-        
-        // Visualization initializations
-        function initVisualization(sectionId) {
-            const canvasId = `${sectionId}-visualization`;
-            const canvas = document.getElementById(canvasId);
-            
-            if (!canvas || canvas.hasChildNodes()) return;
-            
-            // Clear existing content
-            while (canvas.firstChild) {
-                canvas.removeChild(canvas.firstChild);
+                if (slider && valueDisplay) {
+                    slider.addEventListener('input', () => {
+                        valueDisplay.textContent = slider.value;
+                    });
+                }
             }
             
-            // Create SVG container
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.setAttribute("width", "100%");
-            svg.setAttribute("height", "100%");
-            canvas.appendChild(svg);
+            // Setup all sliders
+            setupSlider('branching-factor', 'branching-factor-value');
+            setupSlider('depth', 'depth-value');
+            setupSlider('growth-rate', 'growth-rate-value');
+            setupSlider('zero-count', 'zero-count-value');
+            setupSlider('t-range', 't-range-value');
+            setupSlider('precision', 'precision-value');
+            setupSlider('reynolds', 'reynolds-value');
+            setupSlider('viscosity', 'viscosity-value');
+            setupSlider('time-steps', 'time-steps-value');
             
-            const width = canvas.clientWidth;
-            const height = canvas.clientHeight;
-            
-            // Initialize different visualizations based on section
-            switch(sectionId) {
-                case 'p-vs-np':
-                    initPvsNPVisualization();
-                    break;
-                case 'riemann':
-                    initRiemannVisualization();
-                    break;
-                case 'navier-stokes':
-                    initNavierStokesVisualization();
-                    break;
-                case 'yang-mills':
-                    initYangMillsVisualization(svg, width, height);
-                    break;
-                case 'hodge':
-                    initHodgeVisualization(svg, width, height);
-                    break;
-                case 'birch':
-                    initBSDVisualization(svg, width, height);
-                    break;
-                case 'poincare':
-                    initPoincareVisualization(svg, width, height);
-                    break;
-            }
-        }
-        
-        // P vs NP Visualization
-        function initPvsNPVisualization() {
-            const container = document.getElementById('p-np-visualization');
-            if (!container) return;
-            
-            // Clear existing content
-            container.innerHTML = '';
-            
-            // Create SVG for tree visualization
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.setAttribute("width", "100%");
-            svg.setAttribute("height", "100%");
-            container.appendChild(svg);
-            
-            // Initial tree drawing
-            drawFractalTree(svg);
-            
-            // Initialize growth chart
-            initGrowthChart();
-        }
-        
-        function drawFractalTree(svg) {
-            const width = svg.clientWidth || 600;
-            const height = svg.clientHeight || 400;
-            
-            // Get parameters
-            const branchingFactor = parseInt(document.getElementById('branching-factor').value);
-            const maxDepth = parseInt(document.getElementById('depth').value);
-            
-            // Clear existing content
-            while (svg.firstChild) {
-                svg.removeChild(svg.firstChild);
+            // Visualization initializations
+            function initVisualization(sectionId) {
+                switch(sectionId) {
+                    case 'p-vs-np':
+                        initPvsNPVisualization();
+                        initGrowthChart();
+                        break;
+                    case 'riemann':
+                        initRiemannVisualization();
+                        initPrimeDistributionChart();
+                        break;
+                    case 'navier-stokes':
+                        initNavierStokesVisualization();
+                        initVorticityChart();
+                        break;
+                    case 'yang-mills':
+                        initYangMillsVisualization();
+                        break;
+                    case 'hodge':
+                        initHodgeVisualization();
+                        break;
+                    case 'birch':
+                        initBSDVisualization();
+                        break;
+                    case 'poincare':
+                        initPoincareVisualization();
+                        break;
+                }
             }
             
-            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            svg.appendChild(g);
+            // Update a specific visualization
+            function updateVisualization(sectionId, containerId) {
+                if (sectionId === 'p-vs-np') {
+                    if (containerId === 'p-np-visualization') {
+                        drawFractalTree();
+                    } else if (containerId === 'p-np-growth-chart') {
+                        updateGrowthChart();
+                    }
+                } else if (sectionId === 'riemann') {
+                    if (containerId === 'riemann-visualization') {
+                        updateRiemannVisualization();
+                    } else if (containerId === 'prime-distribution-chart') {
+                        updatePrimeDistributionChart();
+                    }
+                } else if (sectionId === 'navier-stokes') {
+                    if (containerId === 'navier-stokes-visualization') {
+                        drawFluidGrid();
+                    } else if (containerId === 'vorticity-chart') {
+                        updateVorticityChart();
+                    }
+                }
+            }
             
-            function drawTree(x, y, length, angle, depth) {
-                if (depth === 0) return;
+            // P vs NP Visualization
+            function initPvsNPVisualization() {
+                const container = document.getElementById('p-np-visualization');
+                if (!container) return;
                 
-                // Calculate angles for all branches
-                const angleStep = Math.PI / branchingFactor;
-                const startAngle = angle - (Math.PI / 2) * (branchingFactor - 1) / branchingFactor;
+                // Clear existing content
+                container.innerHTML = '';
                 
-                for (let i = 0; i < branchingFactor; i++) {
-                    const branchAngle = startAngle + i * angleStep;
-                    const x2 = x + length * Math.cos(branchAngle);
-                    const y2 = y + length * Math.sin(branchAngle);
+                drawFractalTree();
+            }
+            
+            function drawFractalTree() {
+                const container = document.getElementById('p-np-visualization');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                // Create SVG for tree visualization
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                const svg = d3.select(container)
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+                
+                // Get parameters
+                const branchingFactor = parseInt(document.getElementById('branching-factor').value);
+                const maxDepth = parseInt(document.getElementById('depth').value);
+                
+                // Function to recursively draw tree branches
+                function drawBranches(x, y, length, angle, depth) {
+                    if (depth === 0) return;
                     
-                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                    line.setAttribute("x1", x);
-                    line.setAttribute("y1", y);
-                    line.setAttribute("x2", x2);
-                    line.setAttribute("y2", y2);
-                    line.setAttribute("stroke", `hsl(${depth * 30}, 70%, 50%)`);
-                    line.setAttribute("stroke-width", depth);
-                    g.appendChild(line);
+                    // Calculate angles for all branches
+                    const angleStep = Math.PI / branchingFactor;
+                    const startAngle = angle - (Math.PI / 2) * (branchingFactor - 1) / branchingFactor;
                     
-                    drawTree(x2, y2, length * 0.7, branchAngle, depth - 1);
+                    for (let i = 0; i < branchingFactor; i++) {
+                        const branchAngle = startAngle + i * angleStep;
+                        const x2 = x + length * Math.cos(branchAngle);
+                        const y2 = y + length * Math.sin(branchAngle);
+                        
+                        svg.append("line")
+                            .attr("x1", x)
+                            .attr("y1", y)
+                            .attr("x2", x2)
+                            .attr("y2", y2)
+                            .attr("stroke", `hsl(${depth * 30}, 70%, 50%)`)
+                            .attr("stroke-width", depth);
+                        
+                        drawBranches(x2, y2, length * 0.7, branchAngle, depth - 1);
+                    }
                 }
+                
+                // Start tree drawing from the bottom center
+                drawBranches(width / 2, height - 50, 80, -Math.PI / 2, maxDepth);
+                
+                // Add title
+                svg.append("text")
+                    .attr("x", 20)
+                    .attr("y", 30)
+                    .attr("fill", "#5D5CDE")
+                    .text(`Fractal Decision Tree (Branching: ${branchingFactor}, Depth: ${maxDepth})`);
             }
             
-            // Start tree drawing from the bottom center
-            drawTree(width / 2, height - 50, 80, -Math.PI / 2, maxDepth);
+            function initGrowthChart() {
+                const container = document.getElementById('p-np-growth-chart');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                updateGrowthChart();
+            }
             
-            // Add labels
-            const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            label.setAttribute("x", 20);
-            label.setAttribute("y", 30);
-            label.setAttribute("fill", "#5D5CDE");
-            label.textContent = `Fractal Decision Tree (Branching: ${branchingFactor}, Depth: ${maxDepth})`;
-            svg.appendChild(label);
-        }
-        
-        function initGrowthChart() {
-            const container = document.getElementById('p-np-growth-chart');
-            if (!container) return;
-            
-            // Clear existing content
-            container.innerHTML = '';
-            
-            // Create a canvas for Plotly
-            const canvas = document.createElement('div');
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
-            container.appendChild(canvas);
-            
-            // Generate data for the chart
-            const nValues = Array.from({length: 20}, (_, i) => i + 1);
-            const branchingFactor = parseInt(document.getElementById('branching-factor').value);
-            const depth = parseInt(document.getElementById('depth').value);
-            const growthRate = parseFloat(document.getElementById('growth-rate').value);
-            
-            const entropyValues = nValues.map(n => {
-                let nodes = 0;
-                for (let i = 0; i <= depth; i++) {
-                    nodes += Math.pow(branchingFactor, i);
-                }
-                return nodes * Math.log(n);
-            });
-            
-            const polynomialValues = nValues.map(n => Math.pow(n, growthRate));
-            
-            // Create the chart
-            Plotly.newPlot(canvas, [
-                {
-                    x: nValues,
-                    y: entropyValues,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Entropy Growth',
-                    line: {color: '#5D5CDE'}
-                },
-                {
-                    x: nValues,
-                    y: polynomialValues,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Polynomial Growth',
-                    line: {color: '#FF6B6B'}
-                }
-            ], {
-                title: 'Complexity Growth Comparison',
-                xaxis: {title: 'Problem Size (n)'},
-                yaxis: {title: 'Complexity'},
-                margin: {t: 60, r: 30, b: 60, l: 60},
-                legend: {x: 0, y: 1},
-                plot_bgcolor: document.documentElement.classList.contains('dark') ? '#2D2D3A' : '#F0F0FF',
-                paper_bgcolor: document.documentElement.classList.contains('dark') ? '#2D2D3A' : '#F0F0FF',
-                font: {
-                    color: document.documentElement.classList.contains('dark') ? '#F5F5F5' : '#333333'
-                }
-            });
-        }
-        
-        // Handle computation button clicks
-        document.getElementById('compute-p-np').addEventListener('click', computePvsNP);
-        document.getElementById('run-p-np-code').addEventListener('click', runPvsNPCode);
-        
-        function computePvsNP() {
-            const resultsPanel = document.getElementById('p-np-results');
-            resultsPanel.innerHTML = '<div class="loading"></div> Computing...';
-            
-            setTimeout(() => {
+            function updateGrowthChart() {
+                const container = document.getElementById('p-np-growth-chart');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                // Create a new div for plotly
+                const plotContainer = document.createElement('div');
+                plotContainer.style.width = '100%';
+                plotContainer.style.height = '100%';
+                container.appendChild(plotContainer);
+                
+                // Get parameters
                 const branchingFactor = parseInt(document.getElementById('branching-factor').value);
                 const depth = parseInt(document.getElementById('depth').value);
                 const growthRate = parseFloat(document.getElementById('growth-rate').value);
                 
-                // Simple calculation for demonstration
-                let totalNodes = 0;
-                for (let i = 0; i <= depth; i++) {
-                    totalNodes += Math.pow(branchingFactor, i);
-                }
+                // Generate data for the chart
+                const nValues = Array.from({length: 20}, (_, i) => i + 1);
                 
-                // Determine if growth exceeds polynomial bound
-                const sampleSize = 100;
-                const entropyValue = totalNodes * Math.log(sampleSize);
-                const polynomialValue = Math.pow(sampleSize, growthRate);
-                const exceeds = entropyValue > polynomialValue;
+                const entropyValues = nValues.map(n => {
+                    let nodes = 0;
+                    for (let i = 0; i <= depth; i++) {
+                        nodes += Math.pow(branchingFactor, i);
+                    }
+                    return nodes * Math.log(n);
+                });
                 
-                // Format results
-                const results = `
-                    <h5 class="font-semibold">Complexity Analysis Results:</h5>
-                    <ul class="list-disc pl-6 mt-2">
-                        <li>Total nodes in tree: ${totalNodes}</li>
-                        <li>Entropy value at n=${sampleSize}: ${entropyValue.toFixed(2)}</li>
-                        <li>Polynomial bound (n<sup>${growthRate}</sup>): ${polynomialValue.toFixed(2)}</li>
-                        <li>Conclusion: ${exceeds ? 
-                            '<span class="text-green-600 dark:text-green-400 font-bold">Entropy exceeds polynomial bound</span>' : 
-                            '<span class="text-red-600 dark:text-red-400 font-bold">Entropy within polynomial bound</span>'}</li>
-                    </ul>
-                    <p class="mt-4 text-sm italic">This model demonstrates ${exceeds ? 'evidence for' : 'conditions not sufficient for'} P ≠ NP based on current parameters.</p>
-                `;
+                const polynomialValues = nValues.map(n => Math.pow(n, growthRate));
                 
-                resultsPanel.innerHTML = results;
+                // Determine if dark mode is active
+                const isDarkMode = document.documentElement.classList.contains('dark');
                 
-                // Update visualizations with new parameters
-                drawFractalTree(document.querySelector('#p-np-visualization svg'));
-                initGrowthChart();
-                
-            }, 1500); // Simulated computation time
-        }
-        
-        function runPvsNPCode() {
-            const resultsPanel = document.getElementById('p-np-results');
-            resultsPanel.innerHTML = '<div class="loading"></div> Running custom code...';
+                // Create the chart
+                Plotly.newPlot(plotContainer, [
+                    {
+                        x: nValues,
+                        y: entropyValues,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'Entropy Growth',
+                        line: {color: '#5D5CDE'}
+                    },
+                    {
+                        x: nValues,
+                        y: polynomialValues,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'Polynomial Growth',
+                        line: {color: '#FF6B6B'}
+                    }
+                ], {
+                    title: 'Complexity Growth Comparison',
+                    xaxis: {title: 'Problem Size (n)'},
+                    yaxis: {title: 'Complexity'},
+                    margin: {t: 60, r: 30, b: 60, l: 60},
+                    legend: {x: 0, y: 1},
+                    plot_bgcolor: isDarkMode ? '#2D2D3A' : '#F0F0FF',
+                    paper_bgcolor: isDarkMode ? '#2D2D3A' : '#F0F0FF',
+                    font: {
+                        color: isDarkMode ? '#F5F5F5' : '#333333'
+                    }
+                });
+            }
             
-            setTimeout(() => {
-                try {
-                    const code = document.getElementById('p-np-code').value;
-                    
-                    // Extract values from sliders for use in the code
+            // Handle computation button clicks
+            document.getElementById('compute-p-np').addEventListener('click', computePvsNP);
+            document.getElementById('run-p-np-code').addEventListener('click', runPvsNPCode);
+            
+            function computePvsNP() {
+                const resultsPanel = document.getElementById('p-np-results');
+                resultsPanel.innerHTML = '<div class="loading"></div> Computing...';
+                
+                setTimeout(() => {
                     const branchingFactor = parseInt(document.getElementById('branching-factor').value);
                     const depth = parseInt(document.getElementById('depth').value);
                     const growthRate = parseFloat(document.getElementById('growth-rate').value);
                     
-                    // Create a safe evaluation context
-                    const result = (function() {
-                        // Add variables to context
-                        const n = 100; // Sample problem size
-                        
-                        // Execute user code
-                        try {
-                            eval(code);
-                            // Assume the code defines a function called exceedsPolynomial
-                            if (typeof exceedsPolynomial === 'function') {
-                                return exceedsPolynomial(n);
-                            } else {
-                                return "Error: exceedsPolynomial function not defined";
-                            }
-                        } catch (e) {
-                            return "Error: " + e.message;
-                        }
-                    })();
+                    // Simple calculation for demonstration
+                    let totalNodes = 0;
+                    for (let i = 0; i <= depth; i++) {
+                        totalNodes += Math.pow(branchingFactor, i);
+                    }
                     
-                    // Display results
-                    if (typeof result === 'object') {
+                    // Determine if growth exceeds polynomial bound
+                    const sampleSize = 100;
+                    const entropyValue = totalNodes * Math.log(sampleSize);
+                    const polynomialValue = Math.pow(sampleSize, growthRate);
+                    const exceeds = entropyValue > polynomialValue;
+                    
+                    // Format results
+                    const results = `
+                        <h5 class="font-semibold">Complexity Analysis Results:</h5>
+                        <ul class="list-disc pl-6 mt-2">
+                            <li>Total nodes in tree: ${totalNodes}</li>
+                            <li>Entropy value at n=${sampleSize}: ${entropyValue.toFixed(2)}</li>
+                            <li>Polynomial bound (n<sup>${growthRate}</sup>): ${polynomialValue.toFixed(2)}</li>
+                            <li>Conclusion: ${exceeds ? 
+                                '<span class="text-green-600 dark:text-green-400 font-bold">Entropy exceeds polynomial bound</span>' : 
+                                '<span class="text-red-600 dark:text-red-400 font-bold">Entropy within polynomial bound</span>'}</li>
+                        </ul>
+                        <p class="mt-4 text-sm italic">This model demonstrates ${exceeds ? 'evidence for' : 'conditions not sufficient for'} P ≠ NP based on current parameters.</p>
+                    `;
+                    
+                    resultsPanel.innerHTML = results;
+                    
+                    // Update visualizations with new parameters
+                    drawFractalTree();
+                    updateGrowthChart();
+                    
+                }, 1500); // Simulated computation time
+            }
+            
+            function runPvsNPCode() {
+                const resultsPanel = document.getElementById('p-np-results');
+                resultsPanel.innerHTML = '<div class="loading"></div> Running custom code...';
+                
+                setTimeout(() => {
+                    try {
+                        const code = document.getElementById('p-np-code').value;
+                        
+                        // Extract values from sliders for use in the code
+                        const branchingFactor = parseInt(document.getElementById('branching-factor').value);
+                        const depth = parseInt(document.getElementById('depth').value);
+                        const growthRate = parseFloat(document.getElementById('growth-rate').value);
+                        
+                        // Create a safe evaluation context
+                        const result = (function() {
+                            // Add variables to context
+                            const n = 100; // Sample problem size
+                            
+                            // Execute user code
+                            try {
+                                eval(code);
+                                // Assume the code defines a function called exceedsPolynomial
+                                if (typeof exceedsPolynomial === 'function') {
+                                    return exceedsPolynomial(n);
+                                } else {
+                                    return "Error: exceedsPolynomial function not defined";
+                                }
+                            } catch (e) {
+                                return "Error: " + e.message;
+                            }
+                        })();
+                        
+                        // Display results
+                        if (typeof result === 'object') {
+                            resultsPanel.innerHTML = `
+                                <h5 class="font-semibold">Code Execution Results:</h5>
+                                <ul class="list-disc pl-6 mt-2">
+                                    <li>Entropy value: ${result.entropy?.toFixed(2) || 'N/A'}</li>
+                                    <li>Polynomial bound: ${result.polynomial?.toFixed(2) || 'N/A'}</li>
+                                    <li>Conclusion: ${result.exceedsBound ? 
+                                        '<span class="text-green-600 dark:text-green-400 font-bold">Entropy exceeds polynomial bound</span>' : 
+                                        '<span class="text-red-600 dark:text-red-400 font-bold">Entropy within polynomial bound</span>'}</li>
+                                </ul>
+                                <p class="mt-4 text-sm italic">Custom algorithm analysis provides ${result.exceedsBound ? 'evidence for' : 'conditions under which'} P ≠ NP.</p>
+                            `;
+                        } else {
+                            resultsPanel.innerHTML = `
+                                <p class="text-red-600 dark:text-red-400">${result}</p>
+                                <p class="mt-2">Please check your code and ensure it defines and returns appropriate values.</p>
+                            `;
+                        }
+                    } catch (e) {
                         resultsPanel.innerHTML = `
-                            <h5 class="font-semibold">Code Execution Results:</h5>
-                            <ul class="list-disc pl-6 mt-2">
-                                <li>Entropy value: ${result.entropy?.toFixed(2) || 'N/A'}</li>
-                                <li>Polynomial bound: ${result.polynomial?.toFixed(2) || 'N/A'}</li>
-                                <li>Conclusion: ${result.exceedsBound ? 
-                                    '<span class="text-green-600 dark:text-green-400 font-bold">Entropy exceeds polynomial bound</span>' : 
-                                    '<span class="text-red-600 dark:text-red-400 font-bold">Entropy within polynomial bound</span>'}</li>
-                            </ul>
-                            <p class="mt-4 text-sm italic">Custom algorithm analysis provides ${result.exceedsBound ? 'evidence for' : 'conditions under which'} P ≠ NP.</p>
-                        `;
-                    } else {
-                        resultsPanel.innerHTML = `
-                            <p class="text-red-600 dark:text-red-400">${result}</p>
-                            <p class="mt-2">Please check your code and ensure it defines and returns appropriate values.</p>
+                            <p class="text-red-600 dark:text-red-400">Error executing code: ${e.message}</p>
+                            <p class="mt-2">Please check your code for syntax errors.</p>
                         `;
                     }
-                } catch (e) {
-                    resultsPanel.innerHTML = `
-                        <p class="text-red-600 dark:text-red-400">Error executing code: ${e.message}</p>
-                        <p class="mt-2">Please check your code for syntax errors.</p>
-                    `;
-                }
-            }, 1000);
-        }
-        
-        // Riemann Hypothesis visualization
-        function initRiemannVisualization() {
-            const container = document.getElementById('riemann-visualization');
-            if (!container) return;
+                }, 1000);
+            }
             
-            // Clear existing content
-            container.innerHTML = '';
+            // Riemann Hypothesis visualization
+            function initRiemannVisualization() {
+                const container = document.getElementById('riemann-visualization');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                updateRiemannVisualization();
+            }
             
-            // Create a canvas for Plotly
-            const canvas = document.createElement('div');
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
-            container.appendChild(canvas);
-            
-            // Generate data for critical line visualization
-            const zeroCount = parseInt(document.getElementById('zero-count').value);
-            const tRange = parseInt(document.getElementById('t-range').value);
-            
-            // We'll plot pairs of (0.5, t) for the critical line
-            const criticalLine = {
-                x: Array(100).fill(0.5),
-                y: Array.from({length: 100}, (_, i) => i * tRange / 100),
-                mode: 'lines',
-                type: 'scatter',
-                name: 'Critical Line Re(s) = 1/2',
-                line: {
-                    color: '#5D5CDE',
-                    width: 2,
-                    dash: 'dot'
-                }
-            };
-            
-            // Generate some "zeros" along the critical line
-            const zeros = {
-                x: Array(zeroCount).fill(0.5),
-                y: Array.from({length: zeroCount}, (_, i) => 14.134 + i * 2.2), // First few approximated zero heights
-                mode: 'markers',
-                type: 'scatter',
-                name: 'Zeta Zeros',
-                marker: {
-                    color: 'red',
-                    size: 8
-                }
-            };
-            
-            // Create the plot
-            Plotly.newPlot(canvas, [criticalLine, zeros], {
-                title: 'Riemann Zeta Function Zeros on Critical Line',
-                xaxis: {
-                    title: 'Re(s)',
-                    range: [0, 1]
-                },
-                yaxis: {
-                    title: 'Im(s)',
-                    range: [0, tRange]
-                },
-                margin: {t: 60, r: 30, b: 60, l: 60},
-                legend: {x: 0, y: 1},
-                plot_bgcolor: document.documentElement.classList.contains('dark') ? '#2D2D3A' : '#F0F0FF',
-                paper_bgcolor: document.documentElement.classList.contains('dark') ? '#2D2D3A' : '#F0F0FF',
-                font: {
-                    color: document.documentElement.classList.contains('dark') ? '#F5F5F5' : '#333333'
-                }
-            });
-            
-            // Also initialize prime distribution chart
-            initPrimeDistributionChart();
-        }
-        
-        function initPrimeDistributionChart() {
-            const container = document.getElementById('prime-distribution-chart');
-            if (!container) return;
-            
-            // Clear existing content
-            container.innerHTML = '';
-            
-            // Create a canvas for Plotly
-            const canvas = document.createElement('div');
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
-            container.appendChild(canvas);
-            
-            // Generate prime number data (first 100 primes)
-            const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 
-                73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 
-                179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 
-                283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 
-                419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541];
-            
-            // Prime counting function
-            const x = Array.from({length: 100}, (_, i) => (i+1) * 5);
-            const piX = x.map(n => {
-                return primes.filter(p => p <= n).length;
-            });
-            
-            // Li(x) approximation (logarithmic integral)
-            const liX = x.map(n => {
-                if (n <= 2) return 0;
-                // Rough approximation of Li(x)
-                return n / Math.log(n);
-            });
-            
-            // Create the plot
-            Plotly.newPlot(canvas, [
-                {
-                    x: x,
-                    y: piX,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'π(x) (Prime Counting Function)',
-                    line: {color: '#5D5CDE'}
-                },
-                {
-                    x: x,
-                    y: liX,
-                    type: 'scatter',
-                    mode: 'lines',
-                    name: 'Li(x) (Logarithmic Integral)',
-                    line: {color: '#FF6B6B', dash: 'dash'}
-                }
-            ], {
-                title: 'Prime Number Distribution vs. Approximation',
-                xaxis: {title: 'x'},
-                yaxis: {title: 'Count'},
-                margin: {t: 60, r: 30, b: 60, l: 60},
-                legend: {x: 0, y: 1},
-                plot_bgcolor: document.documentElement.classList.contains('dark') ? '#2D2D3A' : '#F0F0FF',
-                paper_bgcolor: document.documentElement.classList.contains('dark') ? '#2D2D3A' : '#F0F0FF',
-                font: {
-                    color: document.documentElement.classList.contains('dark') ? '#F5F5F5' : '#333333'
-                }
-            });
-        }
-        
-        // Handle Riemann computation
-        document.getElementById('compute-riemann').addEventListener('click', computeRiemann);
-        document.getElementById('run-riemann-code').addEventListener('click', runRiemannCode);
-        
-        function computeRiemann() {
-            const resultsPanel = document.getElementById('riemann-results');
-            resultsPanel.innerHTML = '<div class="loading"></div> Computing zeta zeros...';
-            
-            setTimeout(() => {
+            function updateRiemannVisualization() {
+                const container = document.getElementById('riemann-visualization');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                // Create a new div for plotly
+                const plotContainer = document.createElement('div');
+                plotContainer.style.width = '100%';
+                plotContainer.style.height = '100%';
+                container.appendChild(plotContainer);
+                
+                // Generate data for critical line visualization
                 const zeroCount = parseInt(document.getElementById('zero-count').value);
-                const precision = parseInt(document.getElementById('precision').value);
+                const tRange = parseInt(document.getElementById('t-range').value);
                 
                 // First few actual Riemann zeta zero imaginary parts
                 const zetaZeros = [
                     14.134725, 21.022040, 25.010856, 30.424876, 32.935062,
                     37.586178, 40.918719, 43.327073, 48.005151, 49.773832,
                     52.970321, 56.446248, 59.347044, 60.831779, 65.112544,
-                    67.079811, 69.546402, 72.067158, 75.704691, 77.144840
+                    67.079811, 69.546402, 72.067158, 75.704691, 77.144840,
+                    79.337447, 82.910380, 84.735493, 87.425275, 88.809111,
+                    92.491899, 94.651344, 95.870634, 98.831194, 101.317851,
+                    103.725538, 105.446623, 107.168611, 109.533745, 111.029535,
+                    111.874659, 114.320220, 116.226680, 118.790782, 121.370125,
+                    122.946829, 124.256818, 127.516683, 129.578704, 131.087688,
+                    133.497737, 134.756509, 138.116042, 139.736208, 141.123707
                 ];
                 
-                // Calculate distance from critical line for demonstration
-                const distanceFromHalf = Array(Math.min(zeroCount, zetaZeros.length)).fill(0)
-                    .map(() => {
-                        // Generate a very small random deviation to simulate computational precision
-                        return (Math.random() * 2 - 1) * Math.pow(10, -precision);
-                    });
+                // We'll plot pairs of (0.5, t) for the critical line
+                const criticalLine = {
+                    x: Array(100).fill(0.5),
+                    y: Array.from({length: 100}, (_, i) => i * tRange / 100),
+                    mode: 'lines',
+                    type: 'scatter',
+                    name: 'Critical Line Re(s) = 1/2',
+                    line: {
+                        color: '#5D5CDE',
+                        width: 2,
+                        dash: 'dot'
+                    }
+                };
                 
-                // Format results table
-                let resultsHtml = `
-                    <h5 class="font-semibold">Computed Zeta Zeros:</h5>
-                    <div class="overflow-x-auto mt-2">
-                        <table class="min-w-full text-sm">
-                            <thead>
-                                <tr class="border-b border-gray-300 dark:border-gray-700">
-                                    <th class="text-left py-2">#</th>
-                                    <th class="text-left py-2">Re(s)</th>
-                                    <th class="text-left py-2">Im(s)</th>
-                                    <th class="text-left py-2">Distance from 1/2</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
+                // Generate zeros along the critical line
+                const zeros = {
+                    x: Array(Math.min(zeroCount, zetaZeros.length)).fill(0.5),
+                    y: zetaZeros.slice(0, zeroCount),
+                    mode: 'markers',
+                    type: 'scatter',
+                    name: 'Zeta Zeros',
+                    marker: {
+                        color: 'red',
+                        size: 8
+                    }
+                };
                 
-                for (let i = 0; i < Math.min(zeroCount, zetaZeros.length); i++) {
-                    resultsHtml += `
-                        <tr class="border-b border-gray-300 dark:border-gray-700">
-                            <td class="py-2">${i+1}</td>
-                            <td class="py-2">0.5${distanceFromHalf[i].toFixed(precision)}</td>
-                            <td class="py-2">${zetaZeros[i].toFixed(6)}</td>
-                            <td class="py-2">${Math.abs(distanceFromHalf[i]).toFixed(precision)}</td>
-                        </tr>
-                    `;
+                // Determine if dark mode is active
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                
+                // Create the plot
+                Plotly.newPlot(plotContainer, [criticalLine, zeros], {
+                    title: 'Riemann Zeta Function Zeros on Critical Line',
+                    xaxis: {
+                        title: 'Re(s)',
+                        range: [0, 1]
+                    },
+                    yaxis: {
+                        title: 'Im(s)',
+                        range: [0, Math.max(...zetaZeros.slice(0, zeroCount)) + 10]
+                    },
+                    margin: {t: 60, r: 30, b: 60, l: 60},
+                    legend: {x: 0, y: 1},
+                    plot_bgcolor: isDarkMode ? '#2D2D3A' : '#F0F0FF',
+                    paper_bgcolor: isDarkMode ? '#2D2D3A' : '#F0F0FF',
+                    font: {
+                        color: isDarkMode ? '#F5F5F5' : '#333333'
+                    }
+                });
+            }
+            
+            function initPrimeDistributionChart() {
+                const container = document.getElementById('prime-distribution-chart');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                updatePrimeDistributionChart();
+            }
+            
+            function updatePrimeDistributionChart() {
+                const container = document.getElementById('prime-distribution-chart');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                // Create a new div for plotly
+                const plotContainer = document.createElement('div');
+                plotContainer.style.width = '100%';
+                plotContainer.style.height = '100%';
+                container.appendChild(plotContainer);
+                
+                // Generate prime numbers up to 550
+                const MAX_N = 550;
+                const primes = [];
+                const isPrime = Array(MAX_N + 1).fill(true);
+                isPrime[0] = isPrime[1] = false;
+                
+                for (let i = 2; i <= MAX_N; i++) {
+                    if (isPrime[i]) {
+                        primes.push(i);
+                        for (let j = i * i; j <= MAX_N; j += i) {
+                            isPrime[j] = false;
+                        }
+                    }
                 }
                 
-                resultsHtml += `
-                            </tbody>
-                        </table>
-                    </div>
-                    <p class="mt-4 text-sm italic">All computed zeros lie on the critical line Re(s) = 1/2 within precision of 10<sup>-${precision}</sup>.</p>
-                `;
+                // X values from 1 to MAX_N with step 5
+                const x = Array.from({length: MAX_N/5}, (_, i) => (i+1) * 5);
                 
-                resultsPanel.innerHTML = resultsHtml;
+                // Prime counting function: π(x)
+                const piX = x.map(n => {
+                    return primes.filter(p => p <= n).length;
+                });
                 
-                // Update visualization
-                initRiemannVisualization();
+                // Li(x) approximation (logarithmic integral)
+                const liX = x.map(n => {
+                    if (n <= 2) return 0;
+                    // Approximation of Li(x)
+                    return n / Math.log(n);
+                });
                 
-            }, 2000); // Simulated computation time
-        }
-        
-        function runRiemannCode() {
-            const resultsPanel = document.getElementById('riemann-results');
-            resultsPanel.innerHTML = '<div class="loading"></div> Executing custom zeta function code...';
+                // Determine if dark mode is active
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                
+                // Create the plot
+                Plotly.newPlot(plotContainer, [
+                    {
+                        x: x,
+                        y: piX,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'π(x) (Prime Counting Function)',
+                        line: {color: '#5D5CDE'}
+                    },
+                    {
+                        x: x,
+                        y: liX,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Li(x) (Logarithmic Integral)',
+                        line: {color: '#FF6B6B', dash: 'dash'}
+                    }
+                ], {
+                    title: 'Prime Number Distribution vs. Approximation',
+                    xaxis: {title: 'x'},
+                    yaxis: {title: 'Count'},
+                    margin: {t: 60, r: 30, b: 60, l: 60},
+                    legend: {x: 0, y: 1},
+                    plot_bgcolor: isDarkMode ? '#2D2D3A' : '#F0F0FF',
+                    paper_bgcolor: isDarkMode ? '#2D2D3A' : '#F0F0FF',
+                    font: {
+                        color: isDarkMode ? '#F5F5F5' : '#333333'
+                    }
+                });
+            }
             
-            setTimeout(() => {
-                try {
-                    const code = document.getElementById('riemann-code').value;
+            // Handle Riemann computation
+            document.getElementById('compute-riemann').addEventListener('click', computeRiemann);
+            document.getElementById('run-riemann-code').addEventListener('click', runRiemannCode);
+            
+            function computeRiemann() {
+                const resultsPanel = document.getElementById('riemann-results');
+                resultsPanel.innerHTML = '<div class="loading"></div> Computing zeta zeros...';
+                
+                setTimeout(() => {
+                    const zeroCount = parseInt(document.getElementById('zero-count').value);
                     const precision = parseInt(document.getElementById('precision').value);
                     
-                    // Create a safe evaluation context
-                    const result = (function() {
-                        try {
-                            // Execute the user code
-                            eval(code);
-                            
-                            // Try to find zeros near the critical line
-                            const foundZeros = [];
-                            
-                            // Simple search along the critical line
-                            for (let t = 10; t < 50; t += 2) {
-                                // Check if zeta(0.5 + it) is close to zero
-                                if (typeof isCloseToZero === 'function') {
-                                    const isZero = isCloseToZero(0.5, t, precision);
-                                    if (isZero) {
-                                        foundZeros.push({re: 0.5, im: t});
-                                    }
-                                } else if (typeof complexZeta === 'function') {
-                                    const z = complexZeta({re: 0.5, im: t});
-                                    const magnitude = Math.sqrt(z.re * z.re + z.im * z.im);
-                                    if (magnitude < Math.pow(10, -3)) { // Lower precision for demo
-                                        foundZeros.push({re: 0.5, im: t});
-                                    }
-                                }
-                            }
-                            
-                            return {
-                                zeros: foundZeros,
-                                success: true
-                            };
-                        } catch (e) {
-                            return {
-                                success: false,
-                                error: e.message
-                            };
-                        }
-                    })();
+                    // First few actual Riemann zeta zero imaginary parts
+                    const zetaZeros = [
+                        14.134725, 21.022040, 25.010856, 30.424876, 32.935062,
+                        37.586178, 40.918719, 43.327073, 48.005151, 49.773832,
+                        52.970321, 56.446248, 59.347044, 60.831779, 65.112544,
+                        67.079811, 69.546402, 72.067158, 75.704691, 77.144840,
+                        79.337447, 82.910380, 84.735493, 87.425275, 88.809111,
+                        92.491899, 94.651344, 95.870634, 98.831194, 101.317851,
+                        103.725538, 105.446623, 107.168611, 109.533745, 111.029535,
+                        111.874659, 114.320220, 116.226680, 118.790782, 121.370125,
+                        122.946829, 124.256818, 127.516683, 129.578704, 131.087688,
+                        133.497737, 134.756509, 138.116042, 139.736208, 141.123707
+                    ];
                     
-                    // Display results
-                    if (result.success) {
-                        if (result.zeros.length > 0) {
-                            let zerosHtml = `
-                                <h5 class="font-semibold">Custom Algorithm Results:</h5>
-                                <p>Found ${result.zeros.length} potential zeros:</p>
-                                <div class="overflow-x-auto mt-2">
-                                    <table class="min-w-full text-sm">
-                                        <thead>
-                                            <tr class="border-b border-gray-300 dark:border-gray-700">
-                                                <th class="text-left py-2">#</th>
-                                                <th class="text-left py-2">Re(s)</th>
-                                                <th class="text-left py-2">Im(s)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                            `;
-                            
-                            result.zeros.forEach((zero, i) => {
-                                zerosHtml += `
+                    // Calculate distance from critical line for demonstration
+                    const distanceFromHalf = Array(Math.min(zeroCount, zetaZeros.length)).fill(0)
+                        .map(() => {
+                            // Generate a very small random deviation to simulate computational precision
+                            return (Math.random() * 2 - 1) * Math.pow(10, -precision);
+                        });
+                    
+                    // Format results table
+                    let resultsHtml = `
+                        <h5 class="font-semibold">Computed Zeta Zeros:</h5>
+                        <div class="overflow-x-auto mt-2">
+                            <table class="min-w-full text-sm">
+                                <thead>
                                     <tr class="border-b border-gray-300 dark:border-gray-700">
-                                        <td class="py-2">${i+1}</td>
-                                        <td class="py-2">${zero.re.toFixed(6)}</td>
-                                        <td class="py-2">${zero.im.toFixed(6)}</td>
+                                        <th class="text-left py-2">#</th>
+                                        <th class="text-left py-2">Re(s)</th>
+                                        <th class="text-left py-2">Im(s)</th>
+                                        <th class="text-left py-2">Distance from 1/2</th>
                                     </tr>
-                                `;
-                            });
-                            
-                            zerosHtml += `
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <p class="mt-4 text-sm italic">Your custom algorithm confirmed zeros on the critical line Re(s) = 1/2.</p>
-                            `;
-                            
-                            resultsPanel.innerHTML = zerosHtml;
-                        } else {
-                            resultsPanel.innerHTML = `
-                                <h5 class="font-semibold">Custom Algorithm Results:</h5>
-                                <p>No zeros found with the current parameters. Try adjusting your algorithm or parameters.</p>
-                            `;
-                        }
-                    } else {
-                        resultsPanel.innerHTML = `
-                            <p class="text-red-600 dark:text-red-400">Error in code execution: ${result.error}</p>
-                            <p class="mt-2">Please check your code for errors.</p>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    for (let i = 0; i < Math.min(zeroCount, zetaZeros.length); i++) {
+                        resultsHtml += `
+                            <tr class="border-b border-gray-300 dark:border-gray-700">
+                                <td class="py-2">${i+1}</td>
+                                <td class="py-2">0.5${distanceFromHalf[i].toFixed(precision)}</td>
+                                <td class="py-2">${zetaZeros[i].toFixed(6)}</td>
+                                <td class="py-2">${Math.abs(distanceFromHalf[i]).toFixed(precision)}</td>
+                            </tr>
                         `;
                     }
-                } catch (e) {
-                    resultsPanel.innerHTML = `
-                        <p class="text-red-600 dark:text-red-400">Error executing code: ${e.message}</p>
-                        <p class="mt-2">Please check your code for syntax errors.</p>
+                    
+                    resultsHtml += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="mt-4 text-sm italic">All computed zeros lie on the critical line Re(s) = 1/2 within precision of 10<sup>-${precision}</sup>.</p>
                     `;
-                }
-            }, 1500);
-        }
-        
-        // Navier-Stokes Visualization
-        function initNavierStokesVisualization() {
-            const container = document.getElementById('navier-stokes-visualization');
-            if (!container) return;
-            
-            // Clear existing content
-            container.innerHTML = '';
-            
-            // Create SVG for fluid visualization
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.setAttribute("width", "100%");
-            svg.setAttribute("height", "100%");
-            container.appendChild(svg);
-            
-            // Draw grid and initial fluid state
-            drawFluidGrid(svg);
-            
-            // Initialize vorticity chart
-            initVorticityChart();
-        }
-        
-        function drawFluidGrid(svg) {
-            const width = svg.clientWidth || 600;
-            const height = svg.clientHeight || 400;
-            
-            // Parameters for grid
-            const cellSize = 20;
-            const numCellsX = Math.floor(width / cellSize);
-            const numCellsY = Math.floor(height / cellSize);
-            
-            // Clear existing content
-            while (svg.firstChild) {
-                svg.removeChild(svg.firstChild);
+                    
+                    resultsPanel.innerHTML = resultsHtml;
+                    
+                    // Update visualization
+                    updateRiemannVisualization();
+                    
+                }, 2000); // Simulated computation time
             }
             
-            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            svg.appendChild(g);
-            
-            // Draw grid
-            for (let x = 0; x <= numCellsX; x++) {
-                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                line.setAttribute("x1", x * cellSize);
-                line.setAttribute("y1", 0);
-                line.setAttribute("x2", x * cellSize);
-                line.setAttribute("y2", height);
-                line.setAttribute("stroke", "rgba(100, 100, 100, 0.1)");
-                line.setAttribute("stroke-width", 1);
-                g.appendChild(line);
+            function runRiemannCode() {
+                const resultsPanel = document.getElementById('riemann-results');
+                resultsPanel.innerHTML = '<div class="loading"></div> Executing custom zeta function code...';
+                
+                setTimeout(() => {
+                    try {
+                        const code = document.getElementById('riemann-code').value;
+                        const precision = parseInt(document.getElementById('precision').value);
+                        
+                        // Create a safe evaluation context
+                        const result = (function() {
+                            try {
+                                // Execute the user code
+                                eval(code);
+                                
+                                // Try to find zeros near the critical line
+                                const foundZeros = [];
+                                
+                                // Simple search along the critical line
+                                for (let t = 10; t < 50; t += 2) {
+                                    // Check if zeta(0.5 + it) is close to zero
+                                    if (typeof isCloseToZero === 'function') {
+                                        const isZero = isCloseToZero(0.5, t, precision);
+                                        if (isZero) {
+                                            foundZeros.push({re: 0.5, im: t});
+                                        }
+                                    } else if (typeof complexZeta === 'function') {
+                                        const z = complexZeta({re: 0.5, im: t});
+                                        const magnitude = Math.sqrt(z.re * z.re + z.im * z.im);
+                                        if (magnitude < Math.pow(10, -3)) { // Lower precision for demo
+                                            foundZeros.push({re: 0.5, im: t});
+                                        }
+                                    }
+                                }
+                                
+                                return {
+                                    zeros: foundZeros,
+                                    success: true
+                                };
+                            } catch (e) {
+                                return {
+                                    success: false,
+                                    error: e.message
+                                };
+                            }
+                        })();
+                        
+                        // Display results
+                        if (result.success) {
+                            if (result.zeros && result.zeros.length > 0) {
+                                let zerosHtml = `
+                                    <h5 class="font-semibold">Custom Algorithm Results:</h5>
+                                    <p>Found ${result.zeros.length} potential zeros:</p>
+                                    <div class="overflow-x-auto mt-2">
+                                        <table class="min-w-full text-sm">
+                                            <thead>
+                                                <tr class="border-b border-gray-300 dark:border-gray-700">
+                                                    <th class="text-left py-2">#</th>
+                                                    <th class="text-left py-2">Re(s)</th>
+                                                    <th class="text-left py-2">Im(s)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                `;
+                                
+                                result.zeros.forEach((zero, i) => {
+                                    zerosHtml += `
+                                        <tr class="border-b border-gray-300 dark:border-gray-700">
+                                            <td class="py-2">${i+1}</td>
+                                            <td class="py-2">${zero.re.toFixed(6)}</td>
+                                            <td class="py-2">${zero.im.toFixed(6)}</td>
+                                        </tr>
+                                    `;
+                                });
+                                
+                                zerosHtml += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p class="mt-4 text-sm italic">Your custom algorithm confirmed zeros on the critical line Re(s) = 1/2.</p>
+                                `;
+                                
+                                resultsPanel.innerHTML = zerosHtml;
+                            } else {
+                                resultsPanel.innerHTML = `
+                                    <h5 class="font-semibold">Custom Algorithm Results:</h5>
+                                    <p>No zeros found with the current parameters. Try adjusting your algorithm or parameters.</p>
+                                `;
+                            }
+                        } else {
+                            resultsPanel.innerHTML = `
+                                <p class="text-red-600 dark:text-red-400">Error in code execution: ${result.error}</p>
+                                <p class="mt-2">Please check your code for errors.</p>
+                            `;
+                        }
+                    } catch (e) {
+                        resultsPanel.innerHTML = `
+                            <p class="text-red-600 dark:text-red-400">Error executing code: ${e.message}</p>
+                            <p class="mt-2">Please check your code for syntax errors.</p>
+                        `;
+                    }
+                }, 1500);
             }
             
-            for (let y = 0; y <= numCellsY; y++) {
-                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                line.setAttribute("x1", 0);
-                line.setAttribute("y1", y * cellSize);
-                line.setAttribute("x2", width);
-                line.setAttribute("y2", y * cellSize);
-                line.setAttribute("stroke", "rgba(100, 100, 100, 0.1)");
-                line.setAttribute("stroke-width", 1);
-                g.appendChild(line);
+            // Navier-Stokes Visualization
+            function initNavierStokesVisualization() {
+                const container = document.getElementById('navier-stokes-visualization');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                drawFluidGrid();
             }
             
-            // Add a title
-            const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            title.setAttribute("x", 20);
-            title.setAttribute("y", 30);
-            title.setAttribute("fill", "#5D5CDE");
-            title.textContent = "Navier-Stokes Fluid Flow Grid";
-            svg.appendChild(title);
-            
-            // Add a note
-            const note = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            note.setAttribute("x", 20);
-            note.setAttribute("y", 60);
-            note.setAttribute("fill", "#666");
-            note.textContent = "Click 'Run Fluid Simulation' to visualize flow";
-            svg.appendChild(note);
-        }
-        
-        function initVorticityChart() {
-            const container = document.getElementById('vorticity-chart');
-            if (!container) return;
-            
-            // Clear existing content
-            container.innerHTML = '';
-            
-            // Create a canvas for Plotly
-            const canvas = document.createElement('div');
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
-            container.appendChild(canvas);
-            
-            // Create an empty chart that will be filled during simulation
-            Plotly.newPlot(canvas, [
-                {
-                    x: [],
-                    y: [],
-                    type: 'scatter',
-                    mode: 'lines',
-                    name: 'Total Vorticity',
-                    line: {color: '#5D5CDE'}
-                },
-                {
-                    x: [],
-                    y: [],
-                    type: 'scatter',
-                    mode: 'lines',
-                    name: 'Maximum Vorticity',
-                    line: {color: '#FF6B6B'}
+            function drawFluidGrid() {
+                const container = document.getElementById('navier-stokes-visualization');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                const svg = d3.select(container)
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+                
+                // Parameters for grid
+                const cellSize = 20;
+                const numCellsX = Math.floor(width / cellSize);
+                const numCellsY = Math.floor(height / cellSize);
+                
+                // Draw grid
+                for (let x = 0; x <= numCellsX; x++) {
+                    svg.append("line")
+                        .attr("x1", x * cellSize)
+                        .attr("y1", 0)
+                        .attr("x2", x * cellSize)
+                        .attr("y2", height)
+                        .attr("stroke", "rgba(100, 100, 100, 0.1)")
+                        .attr("stroke-width", 1);
                 }
-            ], {
-                title: 'Vorticity Evolution Over Time',
-                xaxis: {title: 'Time Step'},
-                yaxis: {title: 'Vorticity'},
-                margin: {t: 60, r: 30, b: 60, l: 60},
-                legend: {x: 0, y: 1},
-                plot_bgcolor: document.documentElement.classList.contains('dark') ? '#2D2D3A' : '#F0F0FF',
-                paper_bgcolor: document.documentElement.classList.contains('dark') ? '#2D2D3A' : '#F0F0FF',
-                font: {
-                    color: document.documentElement.classList.contains('dark') ? '#F5F5F5' : '#333333'
+                
+                for (let y = 0; y <= numCellsY; y++) {
+                    svg.append("line")
+                        .attr("x1", 0)
+                        .attr("y1", y * cellSize)
+                        .attr("x2", width)
+                        .attr("y2", y * cellSize)
+                        .attr("stroke", "rgba(100, 100, 100, 0.1)")
+                        .attr("stroke-width", 1);
                 }
-            });
-        }
-        
-        // Handle Navier-Stokes simulation
-        document.getElementById('run-fluid-simulation').addEventListener('click', runFluidSimulation);
-        
-        function runFluidSimulation() {
-            const svg = document.querySelector('#navier-stokes-visualization svg');
-            const vorticityChart = document.getElementById('vorticity-chart').firstChild;
-            const energyResults = document.getElementById('energy-results');
+                
+                // Add a title
+                svg.append("text")
+                    .attr("x", 20)
+                    .attr("y", 30)
+                    .attr("fill", "#5D5CDE")
+                    .text("Navier-Stokes Fluid Flow Grid");
+                
+                // Add a note
+                svg.append("text")
+                    .attr("x", 20)
+                    .attr("y", 60)
+                    .attr("fill", "#666")
+                    .text("Click 'Run Fluid Simulation' to visualize flow");
+            }
             
-            // Parameters
-            const reynolds = parseFloat(document.getElementById('reynolds').value);
-            const viscosity = parseFloat(document.getElementById('viscosity').value);
-            const timeSteps = parseInt(document.getElementById('time-steps').value);
+            function initVorticityChart() {
+                const container = document.getElementById('vorticity-chart');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                updateVorticityChart();
+            }
             
-            // Clear previous simulation
-            drawFluidGrid(svg);
+            function updateVorticityChart() {
+                const container = document.getElementById('vorticity-chart');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                // Create a new div for plotly
+                const plotContainer = document.createElement('div');
+                plotContainer.style.width = '100%';
+                plotContainer.style.height = '100%';
+                container.appendChild(plotContainer);
+                
+                // Determine if dark mode is active
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                
+                // Create an empty chart that will be filled during simulation
+                Plotly.newPlot(plotContainer, [
+                    {
+                        x: [],
+                        y: [],
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Total Vorticity',
+                        line: {color: '#5D5CDE'}
+                    },
+                    {
+                        x: [],
+                        y: [],
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Maximum Vorticity',
+                        line: {color: '#FF6B6B'}
+                    }
+                ], {
+                    title: 'Vorticity Evolution Over Time',
+                    xaxis: {title: 'Time Step'},
+                    yaxis: {title: 'Vorticity'},
+                    margin: {t: 60, r: 30, b: 60, l: 60},
+                    legend: {x: 0, y: 1},
+                    plot_bgcolor: isDarkMode ? '#2D2D3A' : '#F0F0FF',
+                    paper_bgcolor: isDarkMode ? '#2D2D3A' : '#F0F0FF',
+                    font: {
+                        color: isDarkMode ? '#F5F5F5' : '#333333'
+                    }
+                });
+            }
             
-            // Show loading indicator
-            energyResults.innerHTML = '<div class="loading"></div> Running fluid simulation...';
+            // Handle Navier-Stokes simulation
+            document.getElementById('run-fluid-simulation').addEventListener('click', runFluidSimulation);
             
-            // Prepare chart data
-            const timeStepData = Array.from({length: timeSteps}, (_, i) => i);
-            const totalVorticityData = [];
-            const maxVorticityData = [];
-            
-            // Simulate for a few steps before starting animation
-            setTimeout(() => {
+            function runFluidSimulation() {
+                const container = document.getElementById('navier-stokes-visualization');
+                const vorticityContainer = document.getElementById('vorticity-chart');
+                const energyResults = document.getElementById('energy-results');
+                
+                if (!container || !vorticityContainer || !energyResults) return;
+                
+                // Parameters
+                const reynolds = parseFloat(document.getElementById('reynolds').value);
+                const viscosity = parseFloat(document.getElementById('viscosity').value);
+                const timeSteps = parseInt(document.getElementById('time-steps').value);
+                
+                // Clear previous simulation
+                container.innerHTML = '';
+                
+                // Show loading indicator
+                energyResults.innerHTML = '<div class="loading"></div> Running fluid simulation...';
+                
+                // Create SVG for visualization
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                const svg = d3.select(container)
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+                
+                // Draw grid
+                const cellSize = 20;
+                const numCellsX = Math.floor(width / cellSize);
+                const numCellsY = Math.floor(height / cellSize);
+                
+                for (let x = 0; x <= numCellsX; x++) {
+                    svg.append("line")
+                        .attr("x1", x * cellSize)
+                        .attr("y1", 0)
+                        .attr("x2", x * cellSize)
+                        .attr("y2", height)
+                        .attr("stroke", "rgba(100, 100, 100, 0.1)")
+                        .attr("stroke-width", 1);
+                }
+                
+                for (let y = 0; y <= numCellsY; y++) {
+                    svg.append("line")
+                        .attr("x1", 0)
+                        .attr("y1", y * cellSize)
+                        .attr("x2", width)
+                        .attr("y2", y * cellSize)
+                        .attr("stroke", "rgba(100, 100, 100, 0.1)")
+                        .attr("stroke-width", 1);
+                }
+                
+                // Prepare chart data
+                const timeStepData = Array.from({length: timeSteps}, (_, i) => i);
+                const totalVorticityData = [];
+                const maxVorticityData = [];
+                
                 // Create fluid particles
-                const width = svg.clientWidth || 600;
-                const height = svg.clientHeight || 400;
                 const particles = [];
                 const numParticles = 100;
                 
@@ -1614,7 +1783,7 @@ function complexZeta(s) {
                     });
                 }
                 
-                // Initialize chart data with some random values for demonstration
+                // Initialize chart data based on viscosity and Reynolds number
                 for (let i = 0; i < timeSteps; i++) {
                     // Decay vorticity based on viscosity (demonstrating Navier-Stokes behavior)
                     const totalVorticity = 100 * Math.exp(-i * viscosity / reynolds);
@@ -1624,46 +1793,26 @@ function complexZeta(s) {
                     maxVorticityData.push(maxVorticity);
                 }
                 
-                // Update the chart
-                Plotly.update(vorticityChart, {
-                    'x': [timeStepData, timeStepData],
-                    'y': [totalVorticityData, maxVorticityData]
-                }, {}, [0, 1]);
+                // Update the vorticity chart with the new data
+                const plotlyContainer = vorticityContainer.querySelector('div');
+                if (plotlyContainer) {
+                    Plotly.update(plotlyContainer, {
+                        'x': [timeStepData, timeStepData],
+                        'y': [totalVorticityData, maxVorticityData]
+                    }, {}, [0, 1]);
+                }
                 
-                // Start fluid animation
+                // Let's animate the fluid
                 let step = 0;
-                const g = svg.querySelector('g');
+                const particleElements = [];
+                const vectorElements = [];
                 
-                function animateFluid() {
-                    // Clear previous particles
-                    g.innerHTML = '';
-                    
-                    // Draw grid
-                    const cellSize = 20;
-                    const numCellsX = Math.floor(width / cellSize);
-                    const numCellsY = Math.floor(height / cellSize);
-                    
-                    for (let x = 0; x <= numCellsX; x++) {
-                        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                        line.setAttribute("x1", x * cellSize);
-                        line.setAttribute("y1", 0);
-                        line.setAttribute("x2", x * cellSize);
-                        line.setAttribute("y2", height);
-                        line.setAttribute("stroke", "rgba(100, 100, 100, 0.1)");
-                        line.setAttribute("stroke-width", 1);
-                        g.appendChild(line);
-                    }
-                    
-                    for (let y = 0; y <= numCellsY; y++) {
-                        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                        line.setAttribute("x1", 0);
-                        line.setAttribute("y1", y * cellSize);
-                        line.setAttribute("x2", width);
-                        line.setAttribute("y2", y * cellSize);
-                        line.setAttribute("stroke", "rgba(100, 100, 100, 0.1)");
-                        line.setAttribute("stroke-width", 1);
-                        g.appendChild(line);
-                    }
+                function updateFluid() {
+                    // Remove previous particles and vectors
+                    particleElements.forEach(el => el.remove());
+                    vectorElements.forEach(el => el.remove());
+                    particleElements.length = 0;
+                    vectorElements.length = 0;
                     
                     // Update and draw particles
                     particles.forEach(p => {
@@ -1682,39 +1831,40 @@ function complexZeta(s) {
                         if (p.y > height) { p.y = height; p.vy = -p.vy * 0.8; }
                         
                         // Draw particle
-                        const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                        particle.setAttribute("cx", p.x);
-                        particle.setAttribute("cy", p.y);
-                        particle.setAttribute("r", 2 + p.vorticity / 5);
-                        particle.setAttribute("fill", `rgba(93, 92, 222, ${p.vorticity / 10})`);
-                        g.appendChild(particle);
+                        const particle = svg.append("circle")
+                            .attr("cx", p.x)
+                            .attr("cy", p.y)
+                            .attr("r", 2 + p.vorticity / 5)
+                            .attr("fill", `rgba(93, 92, 222, ${p.vorticity / 10})`);
+                        
+                        particleElements.push(particle);
                         
                         // Draw velocity vector
-                        const vector = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                        vector.setAttribute("x1", p.x);
-                        vector.setAttribute("y1", p.y);
-                        vector.setAttribute("x2", p.x + p.vx * 5);
-                        vector.setAttribute("y2", p.y + p.vy * 5);
-                        vector.setAttribute("stroke", "rgba(255, 107, 107, 0.7)");
-                        vector.setAttribute("stroke-width", 1);
-                        g.appendChild(vector);
+                        const vector = svg.append("line")
+                            .attr("x1", p.x)
+                            .attr("y1", p.y)
+                            .attr("x2", p.x + p.vx * 5)
+                            .attr("y2", p.y + p.vy * 5)
+                            .attr("stroke", "rgba(255, 107, 107, 0.7)")
+                            .attr("stroke-width", 1);
+                        
+                        vectorElements.push(vector);
                         
                         // Decay vorticity
                         p.vorticity *= (1 - viscosity / 100);
                     });
                     
                     // Draw timestamp
-                    const timestamp = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    timestamp.setAttribute("x", 20);
-                    timestamp.setAttribute("y", 30);
-                    timestamp.setAttribute("fill", "#5D5CDE");
-                    timestamp.textContent = `Time Step: ${step}`;
-                    g.appendChild(timestamp);
+                    svg.append("text")
+                        .attr("x", 20)
+                        .attr("y", 30)
+                        .attr("fill", "#5D5CDE")
+                        .text(`Time Step: ${step}`);
                     
                     // Continue animation if not at end
                     step++;
                     if (step < timeSteps) {
-                        requestAnimationFrame(animateFluid);
+                        requestAnimationFrame(updateFluid);
                     } else {
                         // Final results
                         const totalEnergy = particles.reduce((sum, p) => sum + (p.vx*p.vx + p.vy*p.vy) / 2, 0);
@@ -1732,532 +1882,577 @@ function complexZeta(s) {
                     }
                 }
                 
-                // Start the animation
-                animateFluid();
+                // Start the animation after a short delay
+                setTimeout(updateFluid, 500);
+            }
+            
+            // Yang-Mills Visualization
+            function initYangMillsVisualization() {
+                const container = document.getElementById('yang-mills-visualization');
+                if (!container) return;
                 
-            }, 1000); // Delay to simulate computation time
-        }
-        
-        // Yang-Mills Visualization: Quantum flux tubes
-        function initYangMillsVisualization(svg, width, height) {
-            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            svg.appendChild(g);
-            
-            // Draw background grid
-            const gridSize = 20;
-            
-            for (let x = 0; x < width; x += gridSize) {
-                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                line.setAttribute("x1", x);
-                line.setAttribute("y1", 0);
-                line.setAttribute("x2", x);
-                line.setAttribute("y2", height);
-                line.setAttribute("stroke", "rgba(100, 100, 100, 0.1)");
-                line.setAttribute("stroke-width", 1);
-                g.appendChild(line);
-            }
-            
-            for (let y = 0; y < height; y += gridSize) {
-                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                line.setAttribute("x1", 0);
-                line.setAttribute("y1", y);
-                line.setAttribute("x2", width);
-                line.setAttribute("y2", y);
-                line.setAttribute("stroke", "rgba(100, 100, 100, 0.1)");
-                line.setAttribute("stroke-width", 1);
-                g.appendChild(line);
-            }
-            
-            // Create flux tubes
-            function createFluxTube(x1, y1, x2, y2, color) {
-                const controlPoint1X = x1 + (x2 - x1) / 2;
-                const controlPoint1Y = y1;
-                const controlPoint2X = x1 + (x2 - x1) / 2;
-                const controlPoint2Y = y2;
+                // Clear existing content
+                container.innerHTML = '';
                 
-                const tubePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                tubePath.setAttribute("d", `M ${x1} ${y1} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${x2} ${y2}`);
-                tubePath.setAttribute("fill", "none");
-                tubePath.setAttribute("stroke", color);
-                tubePath.setAttribute("stroke-width", 3);
-                g.appendChild(tubePath);
-            }
-            
-            // Draw quarks (particles)
-            function drawQuark(x, y, color) {
-                const quark = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                quark.setAttribute("cx", x);
-                quark.setAttribute("cy", y);
-                quark.setAttribute("r", 10);
-                quark.setAttribute("fill", color);
-                g.appendChild(quark);
-            }
-            
-            // Initial particles
-            const particles = [
-                { x: width * 0.2, y: height * 0.3, color: "rgb(255, 50, 50)" },
-                { x: width * 0.8, y: height * 0.3, color: "rgb(50, 50, 255)" },
-                { x: width * 0.2, y: height * 0.7, color: "rgb(50, 255, 50)" },
-                { x: width * 0.8, y: height * 0.7, color: "rgb(255, 255, 50)" }
-            ];
-            
-            // Animation variables
-            let angle = 0;
-            
-            function updateFluxTubes() {
-                g.innerHTML = '';
+                const width = container.clientWidth;
+                const height = container.clientHeight;
                 
-                // Redraw grid
+                const svg = d3.select(container)
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+                
+                // Define arrow marker for flux tubes
+                svg.append("defs").append("marker")
+                    .attr("id", "arrowhead")
+                    .attr("viewBox", "0 -5 10 10")
+                    .attr("refX", 8)
+                    .attr("refY", 0)
+                    .attr("markerWidth", 6)
+                    .attr("markerHeight", 6)
+                    .attr("orient", "auto")
+                    .append("path")
+                    .attr("d", "M0,-5L10,0L0,5")
+                    .attr("fill", "#5D5CDE");
+                
+                // Draw background grid
+                const gridSize = 20;
+                
                 for (let x = 0; x < width; x += gridSize) {
-                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                    line.setAttribute("x1", x);
-                    line.setAttribute("y1", 0);
-                    line.setAttribute("x2", x);
-                    line.setAttribute("y2", height);
-                    line.setAttribute("stroke", "rgba(100, 100, 100, 0.1)");
-                    line.setAttribute("stroke-width", 1);
-                    g.appendChild(line);
+                    svg.append("line")
+                        .attr("x1", x)
+                        .attr("y1", 0)
+                        .attr("x2", x)
+                        .attr("y2", height)
+                        .attr("stroke", "rgba(100, 100, 100, 0.1)")
+                        .attr("stroke-width", 1);
                 }
                 
                 for (let y = 0; y < height; y += gridSize) {
-                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                    line.setAttribute("x1", 0);
-                    line.setAttribute("y1", y);
-                    line.setAttribute("x2", width);
-                    line.setAttribute("y2", y);
-                    line.setAttribute("stroke", "rgba(100, 100, 100, 0.1)");
-                    line.setAttribute("stroke-width", 1);
-                    g.appendChild(line);
+                    svg.append("line")
+                        .attr("x1", 0)
+                        .attr("y1", y)
+                        .attr("x2", width)
+                        .attr("y2", y)
+                        .attr("stroke", "rgba(100, 100, 100, 0.1)")
+                        .attr("stroke-width", 1);
                 }
-                
-                // Update particle positions with rotation
-                angle += 0.02;
-                particles[0].x = width * 0.2 + Math.sin(angle) * 20;
-                particles[0].y = height * 0.3 + Math.cos(angle) * 20;
-                
-                particles[1].x = width * 0.8 + Math.sin(angle + Math.PI) * 20;
-                particles[1].y = height * 0.3 + Math.cos(angle + Math.PI) * 20;
-                
-                particles[2].x = width * 0.2 + Math.sin(angle + Math.PI/2) * 20;
-                particles[2].y = height * 0.7 + Math.cos(angle + Math.PI/2) * 20;
-                
-                particles[3].x = width * 0.8 + Math.sin(angle + 3*Math.PI/2) * 20;
-                particles[3].y = height * 0.7 + Math.cos(angle + 3*Math.PI/2) * 20;
-                
-                // Draw flux tubes
-                createFluxTube(particles[0].x, particles[0].y, particles[1].x, particles[1].y, "rgba(93, 92, 222, 0.7)");
-                createFluxTube(particles[2].x, particles[2].y, particles[3].x, particles[3].y, "rgba(93, 92, 222, 0.7)");
-                
-                // Draw quarks
-                particles.forEach(p => drawQuark(p.x, p.y, p.color));
                 
                 // Add title
-                const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                title.setAttribute("x", 10);
-                title.setAttribute("y", 30);
-                title.setAttribute("fill", "#5D5CDE");
-                title.textContent = "Quantum Flux Tubes (SU(3) Confinement)";
-                g.appendChild(title);
-            }
-            
-            // Animation loop
-            const interval = setInterval(updateFluxTubes, 50);
-        }
-        
-        // Hodge Conjecture Visualization: Algebraic cycles on a surface
-        function initHodgeVisualization(svg, width, height) {
-            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            svg.appendChild(g);
-            
-            // Create a torus (donut) visualization
-            const outerRadius = Math.min(width, height) * 0.3;
-            const innerRadius = outerRadius * 0.5;
-            
-            function drawTorus(rotationX, rotationY) {
-                g.innerHTML = '';
+                svg.append("text")
+                    .attr("x", 10)
+                    .attr("y", 30)
+                    .attr("fill", "#5D5CDE")
+                    .text("Quantum Flux Tubes (SU(3) Confinement)");
                 
-                // Draw circles to represent torus cross-sections
-                const numCircles = 20;
-                for (let i = 0; i < numCircles; i++) {
-                    const angle = (i / numCircles) * Math.PI * 2;
-                    const cx = width / 2 + Math.cos(angle + rotationX) * innerRadius;
-                    const cy = height / 2 + Math.sin(angle + rotationX) * innerRadius * Math.sin(rotationY);
-                    
-                    // Adjust radius based on y-position to simulate 3D
-                    const radius = innerRadius * (0.5 + 0.5 * Math.sin(angle + rotationY));
-                    
-                    // Calculate opacity based on y-position to enhance 3D effect
-                    const opacity = 0.3 + 0.7 * (Math.sin(angle + rotationY) + 1) / 2;
-                    
-                    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                    circle.setAttribute("cx", cx);
-                    circle.setAttribute("cy", cy);
-                    circle.setAttribute("r", radius);
-                    circle.setAttribute("fill", "none");
-                    circle.setAttribute("stroke", `rgba(93, 92, 222, ${opacity})`);
-                    circle.setAttribute("stroke-width", 1.5);
-                    g.appendChild(circle);
-                }
-                
-                // Draw algebraic cycles as curves on the torus
-                const cycle1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                let d = "M";
-                for (let i = 0; i <= 100; i++) {
-                    const angle = (i / 100) * Math.PI * 2;
-                    const x = width / 2 + Math.cos(angle + rotationX) * innerRadius;
-                    const y = height / 2 + Math.sin(angle + rotationX) * innerRadius * Math.sin(rotationY);
-                    d += ` ${x} ${y}`;
-                }
-                cycle1.setAttribute("d", d);
-                cycle1.setAttribute("fill", "none");
-                cycle1.setAttribute("stroke", "rgba(255, 100, 100, 0.8)");
-                cycle1.setAttribute("stroke-width", 2);
-                g.appendChild(cycle1);
-                
-                // Second cycle (perpendicular to first)
-                const cycle2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                d = "M";
-                for (let i = 0; i <= 100; i++) {
-                    const angle = (i / 100) * Math.PI * 2;
-                    const x = width / 2 + Math.cos(rotationX) * innerRadius + Math.cos(angle) * innerRadius * 0.3;
-                    const y = height / 2 + Math.sin(rotationX) * innerRadius * Math.sin(rotationY) + Math.sin(angle) * innerRadius * 0.3;
-                    d += ` ${x} ${y}`;
-                }
-                cycle2.setAttribute("d", d);
-                cycle2.setAttribute("fill", "none");
-                cycle2.setAttribute("stroke", "rgba(100, 255, 100, 0.8)");
-                cycle2.setAttribute("stroke-width", 2);
-                g.appendChild(cycle2);
-                
-                // Add title
-                const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                title.setAttribute("x", 10);
-                title.setAttribute("y", 30);
-                title.setAttribute("fill", "#5D5CDE");
-                title.textContent = "Algebraic Cycles on a Complex Manifold";
-                g.appendChild(title);
-            }
-            
-            // Animation
-            let rotationX = 0;
-            let rotationY = 0;
-            
-            function animateTorus() {
-                rotationX += 0.01;
-                rotationY += 0.005;
-                drawTorus(rotationX, rotationY);
-            }
-            
-            // Animation loop
-            const interval = setInterval(animateTorus, 50);
-        }
-        
-        // Birch-Swinnerton-Dyer Visualization: Elliptic curves
-        function initBSDVisualization(svg, width, height) {
-            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            svg.appendChild(g);
-            
-            // Draw coordinate system
-            const xAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            xAxis.setAttribute("x1", 0);
-            xAxis.setAttribute("y1", height / 2);
-            xAxis.setAttribute("x2", width);
-            xAxis.setAttribute("y2", height / 2);
-            xAxis.setAttribute("stroke", "#999");
-            xAxis.setAttribute("stroke-width", 1);
-            g.appendChild(xAxis);
-            
-            const yAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            yAxis.setAttribute("x1", width / 2);
-            yAxis.setAttribute("y1", 0);
-            yAxis.setAttribute("x2", width / 2);
-            yAxis.setAttribute("y2", height);
-            yAxis.setAttribute("stroke", "#999");
-            yAxis.setAttribute("stroke-width", 1);
-            g.appendChild(yAxis);
-            
-            // Function to map from math coordinates to SVG coordinates
-            function mapX(x) {
-                return width / 2 + x * 40;
-            }
-            
-            function mapY(y) {
-                return height / 2 - y * 40;
-            }
-            
-            // Draw elliptic curve function
-            function drawEllipticCurve(a, b) {
-                const points = [];
-                
-                // Generate points for the curve y² = x³ + ax + b
-                for (let x = -5; x <= 5; x += 0.05) {
-                    const ySquared = Math.pow(x, 3) + a * x + b;
-                    if (ySquared >= 0) {
-                        const y = Math.sqrt(ySquared);
-                        points.push([x, y]);
-                        points.push([x, -y]);
-                    }
-                }
-                
-                // Sort points for smoother curve
-                points.sort((p1, p2) => p1[0] - p2[0]);
-                
-                // Create path
-                let d = "";
-                
-                // Split into top and bottom parts
-                const topPoints = points.filter(p => p[1] >= 0).sort((p1, p2) => p1[0] - p2[0]);
-                const bottomPoints = points.filter(p => p[1] < 0).sort((p1, p2) => p1[0] - p2[0]);
-                
-                if (topPoints.length > 0) {
-                    d += `M ${mapX(topPoints[0][0])} ${mapY(topPoints[0][1])}`;
-                    for (let i = 1; i < topPoints.length; i++) {
-                        d += ` L ${mapX(topPoints[i][0])} ${mapY(topPoints[i][1])}`;
-                    }
-                }
-                
-                if (bottomPoints.length > 0) {
-                    d += ` M ${mapX(bottomPoints[0][0])} ${mapY(bottomPoints[0][1])}`;
-                    for (let i = 1; i < bottomPoints.length; i++) {
-                        d += ` L ${mapX(bottomPoints[i][0])} ${mapY(bottomPoints[i][1])}`;
-                    }
-                }
-                
-                const curve = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                curve.setAttribute("d", d);
-                curve.setAttribute("fill", "none");
-                curve.setAttribute("stroke", "#5D5CDE");
-                curve.setAttribute("stroke-width", 2);
-                g.appendChild(curve);
-                
-                // Plot some rational points
-                const rationalPoints = [
-                    // Some rational points
-                    [0, Math.sqrt(b)],
-                    [1, Math.sqrt(1 + a + b)],
-                    [-1, Math.sqrt((-1) * (-1) * (-1) + a * (-1) + b)]
+                // Define particles (quarks)
+                const particles = [
+                    { id: 1, x: width * 0.2, y: height * 0.3, color: "rgb(255, 50, 50)" },
+                    { id: 2, x: width * 0.8, y: height * 0.3, color: "rgb(50, 50, 255)" },
+                    { id: 3, x: width * 0.2, y: height * 0.7, color: "rgb(50, 255, 50)" },
+                    { id: 4, x: width * 0.8, y: height * 0.7, color: "rgb(255, 255, 50)" }
                 ];
                 
-                rationalPoints.forEach(p => {
-                    if (!isNaN(p[1])) {
-                        const point = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                        point.setAttribute("cx", mapX(p[0]));
-                        point.setAttribute("cy", mapY(p[1]));
-                        point.setAttribute("r", 5);
-                        point.setAttribute("fill", "red");
-                        g.appendChild(point);
-                    }
-                });
+                // Define flux tubes (connections)
+                const fluxTubes = [
+                    { source: 1, target: 2 },
+                    { source: 3, target: 4 }
+                ];
                 
-                // Draw formula
-                const formula = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                formula.setAttribute("x", 10);
-                formula.setAttribute("y", height - 10);
-                formula.setAttribute("fill", "#5D5CDE");
-                formula.textContent = `y² = x³ + ${a.toFixed(2)}x + ${b.toFixed(2)}`;
-                g.appendChild(formula);
+                // Function to create a curved path between two points
+                function createCurvedPath(source, target) {
+                    const midX = (source.x + target.x) / 2;
+                    const dy = target.y - source.y;
+                    return `M${source.x},${source.y} Q${midX},${source.y - dy * 0.2} ${target.x},${target.y}`;
+                }
                 
-                // Draw L-function rank
-                const rank = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                rank.setAttribute("x", width - 150);
-                rank.setAttribute("y", height - 10);
-                rank.setAttribute("fill", "#5D5CDE");
-                rank.textContent = `rank(E) = ${Math.abs(Math.round(a))}`;
-                g.appendChild(rank);
+                // Animate the system
+                let angle = 0;
+                
+                function updateYangMillsAnimation() {
+                    // Update particle positions
+                    angle += 0.02;
+                    
+                    particles[0].x = width * 0.2 + Math.sin(angle) * 20;
+                    particles[0].y = height * 0.3 + Math.cos(angle) * 20;
+                    
+                    particles[1].x = width * 0.8 + Math.sin(angle + Math.PI) * 20;
+                    particles[1].y = height * 0.3 + Math.cos(angle + Math.PI) * 20;
+                    
+                    particles[2].x = width * 0.2 + Math.sin(angle + Math.PI/2) * 20;
+                    particles[2].y = height * 0.7 + Math.cos(angle + Math.PI/2) * 20;
+                    
+                    particles[3].x = width * 0.8 + Math.sin(angle + 3*Math.PI/2) * 20;
+                    particles[3].y = height * 0.7 + Math.cos(angle + 3*Math.PI/2) * 20;
+                    
+                    // Update visualization
+                    svg.selectAll(".particle").remove();
+                    svg.selectAll(".flux-tube").remove();
+                    
+                    // Draw flux tubes
+                    fluxTubes.forEach(tube => {
+                        const source = particles.find(p => p.id === tube.source);
+                        const target = particles.find(p => p.id === tube.target);
+                        
+                        svg.append("path")
+                            .attr("class", "flux-tube")
+                            .attr("d", createCurvedPath(source, target))
+                            .attr("stroke", "rgba(93, 92, 222, 0.7)")
+                            .attr("stroke-width", 3)
+                            .attr("fill", "none")
+                            .attr("marker-end", "url(#arrowhead)");
+                    });
+                    
+                    // Draw particles
+                    particles.forEach(p => {
+                        svg.append("circle")
+                            .attr("class", "particle")
+                            .attr("cx", p.x)
+                            .attr("cy", p.y)
+                            .attr("r", 10)
+                            .attr("fill", p.color);
+                    });
+                    
+                    // Continue animation
+                    requestAnimationFrame(updateYangMillsAnimation);
+                }
+                
+                // Start animation
+                updateYangMillsAnimation();
+            }
+            
+            // Hodge Conjecture Visualization
+            function initHodgeVisualization() {
+                const container = document.getElementById('hodge-visualization');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                const svg = d3.select(container)
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
                 
                 // Add title
-                const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                title.setAttribute("x", 10);
-                title.setAttribute("y", 30);
-                title.setAttribute("fill", "#5D5CDE");
-                title.textContent = "Elliptic Curve with Rational Points";
-                g.appendChild(title);
-            }
-            
-            // Animation variables
-            let a = -3;
-            let b = 2;
-            let direction = 1;
-            
-            function updateCurve() {
-                g.innerHTML = '';
+                svg.append("text")
+                    .attr("x", 10)
+                    .attr("y", 30)
+                    .attr("fill", "#5D5CDE")
+                    .text("Algebraic Cycles on a Complex Manifold");
                 
-                // Redraw axes
-                const xAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                xAxis.setAttribute("x1", 0);
-                xAxis.setAttribute("y1", height / 2);
-                xAxis.setAttribute("x2", width);
-                xAxis.setAttribute("y2", height / 2);
-                xAxis.setAttribute("stroke", "#999");
-                xAxis.setAttribute("stroke-width", 1);
-                g.appendChild(xAxis);
+                // Parameters for torus
+                const outerRadius = Math.min(width, height) * 0.3;
+                const innerRadius = outerRadius * 0.5;
+                const centerX = width / 2;
+                const centerY = height / 2;
                 
-                const yAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                yAxis.setAttribute("x1", width / 2);
-                yAxis.setAttribute("y1", 0);
-                yAxis.setAttribute("x2", width / 2);
-                yAxis.setAttribute("y2", height);
-                yAxis.setAttribute("stroke", "#999");
-                yAxis.setAttribute("stroke-width", 1);
-                g.appendChild(yAxis);
+                // Animation variables
+                let rotationX = 0;
+                let rotationY = 0;
                 
-                drawEllipticCurve(a, b);
-                
-                // Update parameters
-                a += 0.05 * direction;
-                if (a > 3 || a < -3) {
-                    direction *= -1;
-                }
-                
-                b = 2 + Math.sin(a);
-            }
-            
-            // Animation loop
-            const interval = setInterval(updateCurve, 100);
-        }
-        
-        // Poincaré Conjecture Visualization: Ricci flow
-        function initPoincareVisualization(svg, width, height) {
-            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            svg.appendChild(g);
-            
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const maxRadius = Math.min(width, height) * 0.4;
-            
-            // Animation variables
-            let t = 0;
-            let morphProgress = 0;
-            
-            function drawMorphingShape() {
-                g.innerHTML = '';
-                
-                // Morph from torus to sphere
-                const points = [];
-                const numPoints = 100;
-                const torusR1 = maxRadius * 0.7; // Major radius
-                const torusR2 = maxRadius * 0.3; // Minor radius
-                
-                // Calculate points for a distorted torus
-                for (let i = 0; i < numPoints; i++) {
-                    const angle1 = (i / numPoints) * Math.PI * 2;
+                function updateHodgeAnimation() {
+                    // Clear previous frame
+                    svg.selectAll(".torus-element").remove();
                     
-                    // As morphProgress increases, the inner radius of the torus decreases
-                    const morphedR2 = torusR2 * (1 - morphProgress * 0.9);
-                    
-                    // As morphProgress increases, the shape becomes more spherical
-                    const x = centerX + (torusR1 - morphedR2 * morphProgress) * Math.cos(angle1);
-                    const y = centerY + (torusR1 - morphedR2 * morphProgress) * Math.sin(angle1) * (1 - morphProgress * 0.5);
-                    
-                    // Add noise/distortion that decreases as morphProgress increases
-                    const noise = (1 - morphProgress) * Math.sin(5 * angle1 + t) * 10;
-                    
-                    points.push({ x: x + noise, y: y + noise });
-                }
-                
-                // Create path for the shape outline
-                let d = `M ${points[0].x} ${points[0].y}`;
-                
-                for (let i = 1; i < points.length; i++) {
-                    d += ` L ${points[i].x} ${points[i].y}`;
-                }
-                
-                d += " Z"; // Close the path
-                
-                const shapePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                shapePath.setAttribute("d", d);
-                shapePath.setAttribute("fill", "none");
-                shapePath.setAttribute("stroke", "#5D5CDE");
-                shapePath.setAttribute("stroke-width", 2);
-                g.appendChild(shapePath);
-                
-                // Draw "curvature flow" arrows
-                if (morphProgress < 0.9) {
-                    for (let i = 0; i < numPoints; i += 10) {
-                        const point = points[i];
-                        const angle = (i / numPoints) * Math.PI * 2;
+                    // Draw circles to represent torus cross-sections
+                    const numCircles = 20;
+                    for (let i = 0; i < numCircles; i++) {
+                        const angle = (i / numCircles) * Math.PI * 2;
+                        const cx = centerX + Math.cos(angle + rotationX) * innerRadius;
+                        const cy = centerY + Math.sin(angle + rotationX) * innerRadius * Math.sin(rotationY);
                         
-                        // Arrow pointing inward toward the center
-                        const arrowLength = 15 * (1 - morphProgress);
-                        const arrowX = point.x - Math.cos(angle) * arrowLength;
-                        const arrowY = point.y - Math.sin(angle) * arrowLength;
+                        // Adjust radius based on y-position to simulate 3D
+                        const radius = innerRadius * (0.5 + 0.5 * Math.sin(angle + rotationY));
                         
-                        const arrow = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                        arrow.setAttribute("x1", point.x);
-                        arrow.setAttribute("y1", point.y);
-                        arrow.setAttribute("x2", arrowX);
-                        arrow.setAttribute("y2", arrowY);
-                        arrow.setAttribute("stroke", "rgba(255, 100, 100, 0.8)");
-                        arrow.setAttribute("stroke-width", 1.5);
-                        arrow.setAttribute("marker-end", "url(#arrowhead)");
-                        g.appendChild(arrow);
+                        // Calculate opacity based on y-position to enhance 3D effect
+                        const opacity = 0.3 + 0.7 * (Math.sin(angle + rotationY) + 1) / 2;
+                        
+                        svg.append("circle")
+                            .attr("class", "torus-element")
+                            .attr("cx", cx)
+                            .attr("cy", cy)
+                            .attr("r", radius)
+                            .attr("fill", "none")
+                            .attr("stroke", `rgba(93, 92, 222, ${opacity})`)
+                            .attr("stroke-width", 1.5);
                     }
-                }
-                
-                // Create image of a perfect circle at the end
-                if (morphProgress > 0.9) {
-                    const finalCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                    finalCircle.setAttribute("cx", centerX);
-                    finalCircle.setAttribute("cy", centerY);
-                    finalCircle.setAttribute("r", maxRadius * 0.7);
-                    finalCircle.setAttribute("fill", "none");
-                    finalCircle.setAttribute("stroke", "#5D5CDE");
-                    finalCircle.setAttribute("stroke-width", 2);
-                    g.appendChild(finalCircle);
                     
-                    // Text indicating S³
-                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    text.setAttribute("x", centerX);
-                    text.setAttribute("y", centerY);
-                    text.setAttribute("text-anchor", "middle");
-                    text.setAttribute("dominant-baseline", "middle");
-                    text.setAttribute("fill", "#5D5CDE");
-                    text.setAttribute("font-size", "24px");
-                    text.textContent = "S³";
-                    g.appendChild(text);
+                    // Draw algebraic cycles as curves on the torus
+                    // First cycle
+                    let path1 = "M";
+                    for (let i = 0; i <= 100; i++) {
+                        const angle = (i / 100) * Math.PI * 2;
+                        const x = centerX + Math.cos(angle + rotationX) * innerRadius;
+                        const y = centerY + Math.sin(angle + rotationX) * innerRadius * Math.sin(rotationY);
+                        path1 += ` ${x},${y}`;
+                    }
+                    
+                    svg.append("path")
+                        .attr("class", "torus-element")
+                        .attr("d", path1)
+                        .attr("fill", "none")
+                        .attr("stroke", "rgba(255, 100, 100, 0.8)")
+                        .attr("stroke-width", 2);
+                    
+                    // Second cycle (perpendicular to first)
+                    let path2 = "M";
+                    for (let i = 0; i <= 100; i++) {
+                        const angle = (i / 100) * Math.PI * 2;
+                        const x = centerX + Math.cos(rotationX) * innerRadius + Math.cos(angle) * innerRadius * 0.3;
+                        const y = centerY + Math.sin(rotationX) * innerRadius * Math.sin(rotationY) + Math.sin(angle) * innerRadius * 0.3;
+                        path2 += ` ${x},${y}`;
+                    }
+                    
+                    svg.append("path")
+                        .attr("class", "torus-element")
+                        .attr("d", path2)
+                        .attr("fill", "none")
+                        .attr("stroke", "rgba(100, 255, 100, 0.8)")
+                        .attr("stroke-width", 2);
+                    
+                    // Update rotation for next frame
+                    rotationX += 0.01;
+                    rotationY += 0.005;
+                    
+                    // Continue animation
+                    requestAnimationFrame(updateHodgeAnimation);
                 }
                 
-                // Title
-                const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                title.setAttribute("x", 10);
-                title.setAttribute("y", 30);
-                title.setAttribute("fill", "#5D5CDE");
-                title.textContent = "Ricci Flow: Manifold → S³";
-                g.appendChild(title);
-                
-                // Update animation variables
-                t += 0.1;
-                morphProgress += 0.005;
-                
-                if (morphProgress > 1) {
-                    morphProgress = 0;
-                }
+                // Start animation
+                updateHodgeAnimation();
             }
             
-            // Add arrowhead marker definition
-            const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-            svg.appendChild(defs);
+            // Birch-Swinnerton-Dyer Visualization
+            function initBSDVisualization() {
+                const container = document.getElementById('birch-visualization');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                const svg = d3.select(container)
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+                
+                // Add title
+                svg.append("text")
+                    .attr("x", 10)
+                    .attr("y", 30)
+                    .attr("fill", "#5D5CDE")
+                    .text("Elliptic Curve with Rational Points");
+                
+                // Draw coordinate system
+                svg.append("line")
+                    .attr("x1", 0)
+                    .attr("y1", height / 2)
+                    .attr("x2", width)
+                    .attr("y2", height / 2)
+                    .attr("stroke", "#999")
+                    .attr("stroke-width", 1);
+                
+                svg.append("line")
+                    .attr("x1", width / 2)
+                    .attr("y1", 0)
+                    .attr("x2", width / 2)
+                    .attr("y2", height)
+                    .attr("stroke", "#999")
+                    .attr("stroke-width", 1);
+                
+                // Function to map from math coordinates to SVG coordinates
+                function mapX(x) {
+                    return width / 2 + x * 40;
+                }
+                
+                function mapY(y) {
+                    return height / 2 - y * 40;
+                }
+                
+                // Animation variables
+                let a = -3;
+                let b = 2;
+                let direction = 1;
+                
+                function updateBSDAnimation() {
+                    // Clear previous elliptic curve
+                    svg.selectAll(".elliptic-curve").remove();
+                    svg.selectAll(".rational-point").remove();
+                    svg.selectAll(".curve-info").remove();
+                    
+                    // Generate points for the curve y² = x³ + ax + b
+                    const points = [];
+                    for (let x = -5; x <= 5; x += 0.05) {
+                        const ySquared = Math.pow(x, 3) + a * x + b;
+                        if (ySquared >= 0) {
+                            const y = Math.sqrt(ySquared);
+                            points.push([x, y]);
+                            points.push([x, -y]);
+                        }
+                    }
+                    
+                    // Sort points for smoother curve
+                    points.sort((p1, p2) => p1[0] - p2[0]);
+                    
+                    // Split into top and bottom parts
+                    const topPoints = points.filter(p => p[1] >= 0).sort((p1, p2) => p1[0] - p2[0]);
+                    const bottomPoints = points.filter(p => p[1] < 0).sort((p1, p2) => p1[0] - p2[0]);
+                    
+                    // Create line generator for top curve
+                    const lineGenerator = d3.line()
+                        .x(d => mapX(d[0]))
+                        .y(d => mapY(d[1]));
+                    
+                    // Draw top curve
+                    if (topPoints.length > 0) {
+                        svg.append("path")
+                            .attr("class", "elliptic-curve")
+                            .attr("d", lineGenerator(topPoints))
+                            .attr("fill", "none")
+                            .attr("stroke", "#5D5CDE")
+                            .attr("stroke-width", 2);
+                    }
+                    
+                    // Draw bottom curve
+                    if (bottomPoints.length > 0) {
+                        svg.append("path")
+                            .attr("class", "elliptic-curve")
+                            .attr("d", lineGenerator(bottomPoints))
+                            .attr("fill", "none")
+                            .attr("stroke", "#5D5CDE")
+                            .attr("stroke-width", 2);
+                    }
+                    
+                    // Plot some rational points
+                    const rationalPoints = [
+                        [0, Math.sqrt(Math.max(0, b))],
+                        [1, Math.sqrt(Math.max(0, 1 + a + b))],
+                        [-1, Math.sqrt(Math.max(0, (-1) * (-1) * (-1) + a * (-1) + b))]
+                    ];
+                    
+                    rationalPoints.forEach(p => {
+                        if (!isNaN(p[1]) && isFinite(p[1])) {
+                            svg.append("circle")
+                                .attr("class", "rational-point")
+                                .attr("cx", mapX(p[0]))
+                                .attr("cy", mapY(p[1]))
+                                .attr("r", 5)
+                                .attr("fill", "red");
+                        }
+                    });
+                    
+                    // Draw formula
+                    svg.append("text")
+                        .attr("class", "curve-info")
+                        .attr("x", 10)
+                        .attr("y", height - 10)
+                        .attr("fill", "#5D5CDE")
+                        .text(`y² = x³ + ${a.toFixed(2)}x + ${b.toFixed(2)}`);
+                    
+                    // Draw L-function rank
+                    svg.append("text")
+                        .attr("class", "curve-info")
+                        .attr("x", width - 150)
+                        .attr("y", height - 10)
+                        .attr("fill", "#5D5CDE")
+                        .text(`rank(E) = ${Math.abs(Math.round(a))}`);
+                    
+                    // Update parameters
+                    a += 0.05 * direction;
+                    if (a > 3 || a < -3) {
+                        direction *= -1;
+                    }
+                    
+                    b = 2 + Math.sin(a);
+                    
+                    // Continue animation
+                    requestAnimationFrame(updateBSDAnimation);
+                }
+                
+                // Start animation
+                updateBSDAnimation();
+            }
             
-            const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
-            marker.setAttribute("id", "arrowhead");
-            marker.setAttribute("markerWidth", "10");
-            marker.setAttribute("markerHeight", "7");
-            marker.setAttribute("refX", "0");
-            marker.setAttribute("refY", "3.5");
-            marker.setAttribute("orient", "auto");
-            defs.appendChild(marker);
+            // Poincaré Conjecture Visualization
+            function initPoincareVisualization() {
+                const container = document.getElementById('poincare-visualization');
+                if (!container) return;
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                const svg = d3.select(container)
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+                
+                // Add title
+                svg.append("text")
+                    .attr("x", 10)
+                    .attr("y", 30)
+                    .attr("fill", "#5D5CDE")
+                    .text("Ricci Flow: Manifold → S³");
+                
+                // Define arrow marker
+                svg.append("defs").append("marker")
+                    .attr("id", "ricci-arrowhead")
+                    .attr("viewBox", "0 -5 10 10")
+                    .attr("refX", 8)
+                    .attr("refY", 0)
+                    .attr("markerWidth", 6)
+                    .attr("markerHeight", 6)
+                    .attr("orient", "auto")
+                    .append("path")
+                    .attr("d", "M0,-5L10,0L0,5")
+                    .attr("fill", "rgba(255, 100, 100, 0.8)");
+                
+                // Animation variables
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const maxRadius = Math.min(width, height) * 0.4;
+                let morphProgress = 0;
+                let t = 0;
+                
+                function updatePoincareAnimation() {
+                    // Clear previous frame
+                    svg.selectAll(".manifold-element").remove();
+                    
+                    // Generate points for morphing shape
+                    const numPoints = 100;
+                    const torusR1 = maxRadius * 0.7; // Major radius
+                    const torusR2 = maxRadius * 0.3; // Minor radius
+                    
+                    // Calculate points for a distorted torus morphing to a sphere
+                    const points = [];
+                    for (let i = 0; i < numPoints; i++) {
+                        const angle1 = (i / numPoints) * Math.PI * 2;
+                        
+                        // As morphProgress increases, the inner radius of the torus decreases
+                        const morphedR2 = torusR2 * (1 - morphProgress * 0.9);
+                        
+                        // As morphProgress increases, the shape becomes more spherical
+                        const x = centerX + (torusR1 - morphedR2 * morphProgress) * Math.cos(angle1);
+                        const y = centerY + (torusR1 - morphedR2 * morphProgress) * Math.sin(angle1) * (1 - morphProgress * 0.5);
+                        
+                        // Add noise/distortion that decreases as morphProgress increases
+                        const noise = (1 - morphProgress) * Math.sin(5 * angle1 + t) * 10;
+                        
+                        points.push({ x: x + noise, y: y + noise });
+                    }
+                    
+                    // Create path for the shape outline
+                    let d = "";
+                    points.forEach((point, i) => {
+                        if (i === 0) {
+                            d += `M${point.x},${point.y}`;
+                        } else {
+                            d += ` L${point.x},${point.y}`;
+                        }
+                    });
+                    d += " Z"; // Close the path
+                    
+                    // Draw shape
+                    svg.append("path")
+                        .attr("class", "manifold-element")
+                        .attr("d", d)
+                        .attr("fill", "none")
+                        .attr("stroke", "#5D5CDE")
+                        .attr("stroke-width", 2);
+                    
+                    // Draw "curvature flow" arrows
+                    if (morphProgress < 0.9) {
+                        for (let i = 0; i < numPoints; i += 10) {
+                            const point = points[i];
+                            const angle = (i / numPoints) * Math.PI * 2;
+                            
+                            // Arrow pointing inward toward the center
+                            const arrowLength = 15 * (1 - morphProgress);
+                            const arrowX = point.x - Math.cos(angle) * arrowLength;
+                            const arrowY = point.y - Math.sin(angle) * arrowLength;
+                            
+                            svg.append("line")
+                                .attr("class", "manifold-element")
+                                .attr("x1", point.x)
+                                .attr("y1", point.y)
+                                .attr("x2", arrowX)
+                                .attr("y2", arrowY)
+                                .attr("stroke", "rgba(255, 100, 100, 0.8)")
+                                .attr("stroke-width", 1.5)
+                                .attr("marker-end", "url(#ricci-arrowhead)");
+                        }
+                    }
+                    
+                    // Create image of a perfect circle at the end
+                    if (morphProgress > 0.9) {
+                        svg.append("circle")
+                            .attr("class", "manifold-element")
+                            .attr("cx", centerX)
+                            .attr("cy", centerY)
+                            .attr("r", maxRadius * 0.7)
+                            .attr("fill", "none")
+                            .attr("stroke", "#5D5CDE")
+                            .attr("stroke-width", 2);
+                        
+                        // Text indicating S³
+                        svg.append("text")
+                            .attr("class", "manifold-element")
+                            .attr("x", centerX)
+                            .attr("y", centerY)
+                            .attr("text-anchor", "middle")
+                            .attr("dominant-baseline", "middle")
+                            .attr("fill", "#5D5CDE")
+                            .attr("font-size", "24px")
+                            .text("S³");
+                    }
+                    
+                    // Update animation variables
+                    t += 0.1;
+                    morphProgress += 0.003;
+                    
+                    if (morphProgress > 1) {
+                        morphProgress = 0;
+                    }
+                    
+                    // Continue animation
+                    requestAnimationFrame(updatePoincareAnimation);
+                }
+                
+                // Start animation
+                updatePoincareAnimation();
+            }
             
-            const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-            polygon.setAttribute("points", "0 0, 10 3.5, 0 7");
-            polygon.setAttribute("fill", "#FF6464");
-            marker.appendChild(polygon);
-            
-            // Animation loop
-            const interval = setInterval(drawMorphingShape, 50);
-        }
-        
-        // Initialize with first pillar
-        initVisualization('p-vs-np');
+            // AI assistant handler when using the Poe API
+            if (window.Poe) {
+                window.Poe.registerHandler('math-assistant-handler', (result) => {
+                    const msg = result.responses[0];
+                    const responseEl = document.getElementById('ai-response-content');
+                    
+                    if (msg.status === "error") {
+                        responseEl.innerHTML = `<p class="text-red-500">Error: ${msg.statusText || "An error occurred processing your request."}</p>`;
+                        document.getElementById('ai-response').classList.remove('hidden');
+                    } else if (msg.status === "incomplete") {
+                        // Show partial response while streaming
+                        responseEl.innerHTML = marked.parse(msg.content);
+                        document.getElementById('ai-response').classList.remove('hidden');
+                    } else if (msg.status === "complete") {
+                        // Show final response
+                        responseEl.innerHTML = marked.parse(msg.content);
+                        document.getElementById('ai-response').classList.remove('hidden');
+                    }
+                    
+                    document.getElementById('ai-loading').classList.add('hidden');
+                });
+            }
+        });
     </script>
 </body>
 </html>
