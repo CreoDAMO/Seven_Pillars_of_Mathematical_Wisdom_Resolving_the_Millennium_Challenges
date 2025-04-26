@@ -1,3 +1,6 @@
+![file-SevenPillarsOfMathematicalWisdomHead-ezgif com-webp-to-gif-converter](https://github.com/user-attachments/assets/4460a576-67aa-46fe-9469-849690610851)
+
+
 # **Ξ Seven Pillars of Mathematical Wisdom — Living Public Gate**
 
 📌 Author: Jacques Antoine DeGraff
@@ -173,3 +176,5 @@ This project is offered for public transparency, mathematical exploration, and l
  
  
 **The Public Gate Lives. Witness and Participate in its Breath of Truth.**
+
+![file-SevenPillarsOfMathematicalWisdomSeal_Watermark-ezgif com-webp-to-gif-converter](https://github.com/user-attachments/assets/6667d8c2-40e3-45ec-b9e8-9efb282b2bec)
